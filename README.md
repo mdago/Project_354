@@ -3,6 +3,10 @@
 Here are the files required for the project. Iteration 2 under "src" is where the work needs to be done. The file "COMP 354.zip" is
 a zip folder that can be directly imported to eclipse for easy editing.
 
+The 'external' folder contains the Yahoo API jars that need to added to the project's build path so that the 'Display.java' file
+can connect to Yahoo Finance. If you're unsure how to do this, just download the zip file and import it into eclipse to save any
+potential headaches.
+
 This read me will contain a list of things currently that need to fixed or added.
 
 At this moment, some tasks that are required:
