@@ -1,18 +1,21 @@
 package iteration2;
 
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.chart.LineChart;
+import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
@@ -24,13 +27,11 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.List;
 
 import iteration1.Calculator;
 
 import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
-import yahoofinance.histquotes.HistoricalQuote;
 import yahoofinance.histquotes.Interval;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -108,19 +109,29 @@ public class Display extends Application {
 	private Stock stock;
 	
 	/**
-	 *  Double array of closing prices
+	 * Double array representing closing prices of stock
 	 */
 	double[] closings;
 	
 	/**
-	 * Yahoo Finance Calendar instance used to determine time spans (start of span)
+	 * Integer value representing time span for stock
 	 */
-	Calendar start = Calendar.getInstance();
+	private int timeSpan = 1;
 	
 	/**
-	 * Yahoo Finance Calendar instance used to determine time spans (end of span)
+	 * Area chart representing closing prices of stocks
 	 */
-	Calendar end = Calendar.getInstance();
+	private AreaChart<Number, Number> show;
+	
+	/**
+	 * Interval at which the data will be displayed
+	 */
+	private Interval interval = Interval.DAILY;
+	
+	/**
+	 * String that will be concatenated to x-axis to display scale
+	 */
+	private String delimiter = " (in Days)";
 	
 	/**
 	 * Overrides Application start method. This method creates and runs the GUI
@@ -128,8 +139,9 @@ public class Display extends Application {
 	 */
 	@Override
 	public void start(Stage stage) throws IOException {	
-		//	temporarily set time span ** THIS -1 SHOULD BE CALCULATED BY A METHOD TO DETERMINE TIME SPAN
-		start.add(Calendar.YEAR, -1);
+		//	temporarily set time span to 1 year
+		Calendar start = Calendar.getInstance();
+		Calendar end = Calendar.getInstance();
 		
 		// set title of window
         stage.setTitle("Stock Program");
@@ -182,19 +194,29 @@ public class Display extends Application {
         
         //	CENTER PART OF LAYOUT :: GRAPH
         
-        //  mouse clicked event handler that returns index of selected item
+        //  mouse clicked listener that returns index of selected item
         //	this will create and display a new chart each time new stock is selected
         stockList.setOnMouseClicked(new EventHandler<MouseEvent>() {
         	@Override
             public void handle(MouseEvent arg0) {
                stockIndex = stockList.getSelectionModel().getSelectedIndex();
-               try {
-				   stock = YahooFinance.get(tickers[stockIndex], start, end, Interval.DAILY);
+               try {            	   
+            	   start.add(Calendar.YEAR, (timeSpan * -1));
+            	   
+				   stock = YahooFinance.get(tickers[stockIndex], start, end, interval);
+				   
+				   closings = new double[stock.getHistory().size()];
+				   
+				   //	add data to array 
+			        for (int i = 0; i < stock.getHistory().size(); ++i) {
+			        	closings[i] = stock.getHistory().get(stock.getHistory().size() - i - 1).getClose().doubleValue();
+			        }
 				   
 				   //	create a chart
-				   LineChart<Number, Number> show = createChart(names[stockIndex]);
+				   show = createChart(names[stockIndex]);
+				   
 	
-				   addDataToGraph(stock, show);	//	add data to graph
+				   addDataToGraph(closings, show);	//	add data to graph
 				   
 				   bp.setCenter(show);
 				   
@@ -222,15 +244,76 @@ public class Display extends Application {
         //	create a toggle group so only one choice can be selected
         ToggleGroup group = new ToggleGroup();
         
-        //	create radio buttons for time span
+        //	create radio buttons for time span and set ID to number of years to display. All time is represented as 0. These strings will be parsed to integers at runtime
         RadioButton oneYear = new RadioButton("1 year");
         oneYear.setToggleGroup(group);
+        oneYear.setId("1");
+        oneYear.setSelected(true);
+        RadioButton twoYears = new RadioButton("2 years");
+        twoYears.setToggleGroup(group);
+        twoYears.setId("2");
         RadioButton fiveYears = new RadioButton("5 years");
         fiveYears.setToggleGroup(group);
-        RadioButton tenYears = new RadioButton("10 years");
-        tenYears.setToggleGroup(group);
+        fiveYears.setId("5");
         RadioButton allTime = new RadioButton("All-time");
         allTime.setToggleGroup(group);
+        allTime.setId("100");
+        
+        //	listener for radio button selection
+        group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+            public void changed(ObservableValue<? extends Toggle> ov, Toggle old_toggle, Toggle new_toggle) {
+            	if (group.getSelectedToggle() != null) {
+            		Calendar start = Calendar.getInstance();
+            		Calendar end = Calendar.getInstance();
+            		
+            		RadioButton selected = (RadioButton) group.getSelectedToggle();
+                    timeSpan = Integer.parseInt(selected.getId());
+                    
+                    //	adjust x-axis scale based on selected time span              
+                    if (timeSpan == 1) {
+                    	interval = Interval.DAILY;
+                    	delimiter = " (in Days)";
+                    }
+                    else if (timeSpan == 2 || timeSpan == 5) {
+                    	interval = Interval.WEEKLY;
+                    	delimiter = " (in Weeks)";
+                    }
+                    else {
+                    	interval = Interval.MONTHLY;
+                    	delimiter = " (in Months)";
+                    }
+                    
+                    try {                 	   
+                       //	update calendar year starting point
+                 	   start.add(Calendar.YEAR, (timeSpan * -1));
+                 	   
+                 	   //	get new info from Yahoo Finance
+     				   stock = YahooFinance.get(tickers[stockIndex], start, end, interval);
+     				   
+     				   //	update value of closing prices
+     				   closings = new double[stock.getHistory().size()];
+     				   
+     				   //	add data to array 
+     			        for (int i = 0; i < stock.getHistory().size(); ++i) {
+     			        	closings[i] = stock.getHistory().get(stock.getHistory().size() - i - 1).getClose().doubleValue();
+     			        }
+     				   
+     				   //	create a chart
+     				   show = createChart(names[stockIndex]);
+     				   
+     				   //	add data to graph
+     				   addDataToGraph(closings, show);
+     				   
+     				   //	update graph in center
+     				   bp.setCenter(show);
+     				   
+                    } catch (IOException e) {
+                 	   System.out.println("Connection Error");
+                 	   System.exit(1);
+                    }
+                }
+            }
+        });
         
         //	create check boxes for moving averages
         CheckBox twenty = new CheckBox("20 Day Moving Average");
@@ -238,6 +321,43 @@ public class Display extends Application {
         CheckBox oneHundred = new CheckBox("100 Day Moving Average");
         CheckBox twoHundred = new CheckBox("200 Day Moving Average");
         
+        //	add listeners to each check box
+        twenty.selectedProperty().addListener(new ChangeListener<Boolean>() {
+        	@Override
+        	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        		if (twenty.isSelected())
+        			System.out.println("20 moving day average selected");
+        		else
+        			System.out.println("20 unselected");
+        	}
+        });
+        fifty.selectedProperty().addListener(new ChangeListener<Boolean>() {
+        	@Override
+        	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        		if (fifty.isSelected())
+        			System.out.println("50 moving day average selected");
+        		else
+        			System.out.println("50 unselected");
+        	}
+        });
+        oneHundred.selectedProperty().addListener(new ChangeListener<Boolean>() {
+        	@Override
+        	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        		if (oneHundred.isSelected())
+        			System.out.println("100 moving day average selected");
+        		else
+        			System.out.println("100 unselected");
+        	}
+        });
+        twoHundred.selectedProperty().addListener(new ChangeListener<Boolean>() {
+        	@Override
+        	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        		if (twoHundred.isSelected())
+        			System.out.println("200 moving day average selected");
+        		else
+        			System.out.println("200 unselected");
+        	}
+        });
         
         //	add label
         right.getChildren().add(rightTitle);
@@ -247,8 +367,8 @@ public class Display extends Application {
         
         //	add radio buttons boxes
         right.getChildren().add(oneYear);
+        right.getChildren().add(twoYears);
         right.getChildren().add(fiveYears);
-        right.getChildren().add(tenYears);
         right.getChildren().add(allTime);
         
         //	add label
@@ -273,7 +393,6 @@ public class Display extends Application {
         scene.getStylesheets().add(getClass().getResource("graph.css").toExternalForm());
        
         //	give the application an icon
-        //stage.getIcons().add(new Image(this.getClass().getResourceAsStream("graph-icon.png")));
         stage.getIcons().add(new Image(Display.class.getResourceAsStream("graph-icon.png")));
         
         //	make the chart visible and fixed
@@ -286,49 +405,53 @@ public class Display extends Application {
 	 * Create a blank chart as a place holder while awaiting for user's selection
 	 * @return a linechart
 	 */
-	private LineChart<Number, Number> createChart() {
+	private AreaChart<Number, Number> createChart() {
 		//	instantiate axis
         x = new NumberAxis();
         y = new NumberAxis();
 		
-		LineChart<Number, Number> lc = new LineChart<Number,Number>(x,y);
+		AreaChart<Number, Number> ac = new AreaChart<Number,Number>(x,y);
         
         //	give axis names
         x.setLabel("Elapsed Time");
         y.setLabel("Daily Closing Price ($)");
         
         // 	disable chart symbols
-        lc.setCreateSymbols(false);
+        ac.setCreateSymbols(false);
         
-        lc.setAnimated(true);
+        ac.setAnimated(true);
         
-        return lc;		
+        return ac;		
 	}
 	
 	/**
 	 * Create a a new linechart that displays the title of the selected stock
 	 * @return a linechart
 	 */
-	private LineChart<Number, Number> createChart(String stockName) {
+	private AreaChart<Number, Number> createChart(String stockName) {
+		//	initialize calculator
+        calculator = new Calculator();
+		
 		//	instantiate axis
         x = new NumberAxis();
-        y = new NumberAxis(135, 195, 2);
+        // 	set scale for y axis using min and max values of closing prices
+        y = new NumberAxis(calculator.getMin(closings) - 1, calculator.getMax(closings) + 1, 2);
 		
-		LineChart<Number, Number> lc = new LineChart<Number,Number>(x,y);
+		AreaChart<Number, Number> ac = new AreaChart<Number,Number>(x,y);
         
         //	give axis names
-        x.setLabel("Elapsed Time");
+        x.setLabel("Elapsed Time" + delimiter);
         y.setLabel("Daily Closing Price ($)");
                 
         //	give chart a title
-        lc.setTitle(stockName + " Stock History");
+        ac.setTitle(stockName + " Stock History");
         
         // 	disable chart symbols
-        lc.setCreateSymbols(false);
+        ac.setCreateSymbols(false);
         
-        lc.setAnimated(true);
+        ac.setAnimated(true);
         
-        return lc;		
+        return ac;		
 	}
 	
 	/**
@@ -337,51 +460,22 @@ public class Display extends Application {
 	 * @param aLine the line chart on which to add the data
 	 * @throws IOException Throws exception if connection error
 	 */
-	private void addDataToGraph(Stock aStock, LineChart<Number, Number> aLine) throws IOException {     		
+	private void addDataToGraph(double[] prices, AreaChart<Number, Number> aLine) throws IOException {   		
         //	instantiate data series
         closingPrices = new XYChart.Series();
-        twentyDayMA = new XYChart.Series();
         
         //	give the series their names
         closingPrices.setName("Daily Closing Prices");
-        twentyDayMA.setName("20 Day Moving Average");
-        
-        //	set up display such that it shows monthly stocks for 1 year COULD CHANGE THIS SUCH THAT THE START AND END CAN BE REPLACED BY METHODS THAT DETERMINE TIMESPAN
-        aStock = YahooFinance.get(tickers[stockIndex], start, end, Interval.DAILY);
-        //	create list of stocks
-        List<HistoricalQuote> quotes = stock.getHistory();
-        
-        //	initialize calculator
-        calculator = new Calculator();
-        
-        //	create new array of closing prices
-        closings = new double[quotes.size()];
-        
-        //	add data to array 
-        /*
-        for (int i = 0; i < quotes.size(); ++i)
-        	closings[i] = quotes.get(i).getClose().doubleValue();
-        */
-        for (int i = 0; i < quotes.size(); ++i)
-        	closings[i] = quotes.get(quotes.size() - i - 1).getClose().doubleValue();
-        
-        //	calculate moving average
-        closings = calculator.calculateMovingAverage(closings, 20);
         
         //	add data to series
-        for (int i = 0; i < quotes.size(); ++i) {
-        	closingPrices.getData().add(new XYChart.Data(i, quotes.get(quotes.size() - i - 1).getClose()));
+        for (int i = 0; i < prices.length; ++i) {
+        	closingPrices.getData().add(new XYChart.Data(i, prices[i]));
         }
-        for (int k = 0; k < closings.length; ++k)
-        	twentyDayMA.getData().add(new XYChart.Data(k, closings[k]));
        
         //	add closing prices to graph
         aLine.getData().add(closingPrices);
-        
-        //	add moving average to graph
-        aLine.getData().add(twentyDayMA);
-	}
- 
+	}	
+	
 	/**
 	 * Main that runs the entire project and displays the graph
 	 * @param args Standard Main method parameter
