@@ -1,4 +1,4 @@
-# Project_354
+# Project 354
 
 Here are the files required for the project. Iteration 2 under "src" is where the work needs to be done. The file "COMP 354.zip" is
 a zip folder that can be directly imported to eclipse for easy editing.
@@ -17,13 +17,15 @@ At this moment, some tasks that are required:
      log in page
   4) Title page?? (everyone should vote on this)
   5) Buy/Sell signals on crossing of moving average and stock prices
-  6) CSS Styling of GUI to make it look pretty :)
+  6) Settings page to change password? The interview answers posted by the teacher mentions user AND password management
+  7) CSS Styling of GUI to make it look pretty :)
   
 These are some task currently requiring working. This list may be lengthened or shortened as need be.
 
-I (Stephen) will be working on the project this weekend and I will be working on:
+Stephen will be working on these tasks:
   Getting the graph to auto scale to the values of the stock prices
-  Event handling for the radio buttons and check boxes on the right side
+  Dynamically updating graph when user selects time span
+  Adjusting auto scale of horizontal axis for time span (daily, weekly or monthly)
   
 If anyone has any comments, modifications, additions or whatever then feel free to add it here so everyone can see and offer 
 their opinions.
