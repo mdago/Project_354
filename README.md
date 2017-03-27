@@ -1,6 +1,16 @@
 # Project 354
 
-Here are the files required for the project. Iteration 2 under "src" is where the work needs to be done. The file "COMP 354.zip" is
+Update 26 March 2017:
+-added images next to each stock  
+-added custom font  
+-choosing a timespan will cause the graph to update with new values  
+-choosing moving averages will add the lines to the graph  
+-linechart was changed to an areachart  
+-added push notifications warning user of potential problems  
+-added program icon when GUI is running  
+-bug fixes
+
+Here are the files required for the project. Iteration 2 under "src" is where the work needs to be done. The file "COMP-354.zip" is
 a zip folder that can be directly imported to eclipse for easy editing.
 
 The 'external' folder contains the Yahoo API jars that need to added to the project's build path so that the 'Display.java' file
@@ -22,11 +32,6 @@ At this moment, some tasks that are required:
   
 These are some task currently requiring working. This list may be lengthened or shortened as need be.
 
-Stephen will be working on these tasks:
-  Getting the graph to auto scale to the values of the stock prices
-  Dynamically updating graph when user selects time span
-  Adjusting auto scale of horizontal axis for time span (daily, weekly or monthly)
-  
 If anyone has any comments, modifications, additions or whatever then feel free to add it here so everyone can see and offer 
 their opinions.
 
