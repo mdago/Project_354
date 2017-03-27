@@ -5,11 +5,16 @@
 
 @font-face {
 	font-family: 'Montserrat';
-	/*src: url("Montserrat-Regular.ttf"); */
+	src: url("Montserrat-Regular.ttf");
+}
+
+.text {
+	-fx-font-smoothing-type: gray;
 }
 
 .root {
 	-fx-font-family: 'Montserrat';
+	-fx-font-size: 14px;
 }
 
 .chart {
@@ -31,7 +36,7 @@
 }
 
 .chart-legend-item {
-	-fx-font-size: 1.25em;
+	-fx-font-size: 1em;
 	-fx-text-fill: #45565c;
 }
 
@@ -80,13 +85,35 @@
 }
 
 .list-view-style {
-	-fx-font-size: 0.9em;
+	-fx-font-size: 0.98em;
 }
 
 .list-cell {
-	-fx-font-family: "Arial", sans-serif;
+	-fx-font-size: 0.90em;
+	-fx-padding: 5px;
 }
 
 .list-cell:hover {
 	-fx-background-color: lightgrey;
 }
+
+/* 	Remove area under moving average lines */
+.default-color1.chart-series-area-fill {
+	-fx-opacity: 0;
+}
+.default-color2.chart-series-area-fill {
+	-fx-opacity: 0;
+}
+.default-color3.chart-series-area-fill {
+	-fx-opacity: 0;
+}
+.default-color4.chart-series-area-fill {
+	-fx-opacity: 0;
+}
+
+
+/*	USE THIS TO STYLIZE THE TIP OF THE LINE
+.default-color0.chart-series-area-line {
+	-fx-stroke: #000000;
+}
+*/
