@@ -28,7 +28,7 @@ At this moment, some tasks that are required:
   4) Title page?? (everyone should vote on this)
   5) Buy/Sell signals on crossing of moving average and stock prices
   6) Settings page to change password? The interview answers posted by the teacher mentions user AND password management
-  7) CSS Styling of GUI to make it look pretty :)
+  7) Extensive Testing
   
 These are some task currently requiring working. This list may be lengthened or shortened as need be.
 
