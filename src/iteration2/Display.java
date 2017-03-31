@@ -14,19 +14,29 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
@@ -34,6 +44,10 @@ import java.io.IOException;
 import java.util.Calendar;
 
 import org.controlsfx.control.Notifications;
+import org.controlsfx.control.PopOver;
+import org.controlsfx.control.PopOver.ArrowLocation;
+import org.gillius.jfxutils.chart.ChartPanManager;
+import org.gillius.jfxutils.chart.ChartZoomManager;
 
 import iteration1.Calculator;
 
@@ -41,6 +55,7 @@ import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 /**
  * The main driver. Generates the GUI and uses mouse click event handlers to display user selected information. Information is gathered using the Yahoo Finance API
  * @author Stephen Prizio, Marco Dagostino, Ming Tsai, Maximilien Le Clei, Chris McArthur, Himmet Arican, Athanasios Babouras
@@ -51,6 +66,26 @@ public class Display extends Application {
 	 * Calculator to calculate moving averages
 	 */
 	private Calculator calculator;
+	
+	/**
+	 * Top button bar for navigation
+	 */
+	private ButtonBar bar;
+	
+	/**
+	 * Array containing all dates for the stock's prices
+	 */
+	private DateObject[] dates;
+	
+	/**
+	 * Help button for tutorial
+	 */
+	private Button help;
+	
+	/**
+	 * Reset button to reset chart view
+	 */
+	private Button reset;
 	
 	/**
 	 * Array of Strings representing the 30 DOW stocks as tickers
@@ -65,83 +100,50 @@ public class Display extends Application {
 			, "Johnson & Johnson", "JPMorgan Chase", "McDonald's", "3M Company", "Merck", "Microsoft", "Nike", "Pfizer", "Procter & Gamble", "The Travelers", "UnitedHealth", "United Technologies", "Visa", "Verizon"
 			, "Wal-Mart", "Walt Disney"};
 	
-	//	list of images for list view
-	private final Image apple = new Image("file:src/imgs/apple.png", 50.0, 50.0, true, true);
-	private final Image amexpr = new Image("file:src/imgs/aex.png", 50.0, 50.0, true, true);
-	private final Image boeing = new Image("file:src/imgs/boeing.png", 50.0, 58.0, false, true);
-	private final Image cat = new Image("file:src/imgs/cat.png", 50.0, 50.0, true, true);
-	private final Image cisco = new Image("file:src/imgs/cisco.png", 50.0, 50.0, true, true);
-	private final Image chevron = new Image("file:src/imgs/chevron.png", 50.0, 50.0, true, true);
-	private final Image coke = new Image("file:src/imgs/coke.png", 50.0, 58.0, true, true);
-	private final Image dupont = new Image("file:src/imgs/dupont.png", 50.0, 58.0, true, true);
-	private final Image exxon = new Image("file:src/imgs/exxon.png", 50.0, 50.0, true, true);
-	private final Image ge = new Image("file:src/imgs/ge.png", 50.0, 50.0, true, true);
-	private final Image goldman = new Image("file:src/imgs/gs.png", 50.0, 50.0, true, true);
-	private final Image homedepot = new Image("file:src/imgs/thd.jpg", 50.0, 50.0, true, true);
-	private final Image ibm = new Image("file:src/imgs/ibm.png", 50.0, 50.0, true, true);
-	private final Image intel = new Image("file:src/imgs/intel.png", 50.0, 50.0, true, true);
-	private final Image johnson = new Image("file:src/imgs/j&j.png", 50.0, 50.0, true, true);
-	private final Image jpmorgan = new Image("file:src/imgs/jpmorgan.png", 50.0, 50.0, true, true);
-	private final Image mcds = new Image("file:src/imgs/mcds.png", 50.0, 50.0, true, true);
-	private final Image threeM = new Image("file:src/imgs/3m.png", 50.0, 50.0, true, true);
-	private final Image merck = new Image("file:src/imgs/merck.png", 50.0, 50.0, true, true);
-	private final Image microsoft = new Image("file:src/imgs/microsoft.png", 50.0, 50.0, true, true);
-	private final Image nike = new Image("file:src/imgs/nike.png", 50.0, 50.0, true, true);
-	private final Image pfizer = new Image("file:src/imgs/pfizer.png", 50.0, 50.0, true, true);
-	private final Image procter = new Image("file:src/imgs/p&g.png", 50.0, 50.0, true, true);
-	private final Image travelers = new Image("file:src/imgs/travelers.png", 50.0, 50.0, true, true);
-	private final Image unh = new Image("file:src/imgs/unh.png", 50.0, 50.0, true, true);
-	private final Image ut = new Image("file:src/imgs/ut.png", 50.0, 50.0, true, true);
-	private final Image visa = new Image("file:src/imgs/visa.png", 50.0, 50.0, true, true);
-	private final Image verizon = new Image("file:src/imgs/verizon.png", 50.0, 50.0, true, true);
-	private final Image walmart = new Image("file:src/imgs/walmart.png", 50.0, 50.0, true, true);
-	private final Image disney = new Image("file:src/imgs/disney.png", 50.0, 50.0, true, true);
-	
 	/**
-	 * Array storing all image logos
+	 * Array storing all stock logos
 	 */
-	private final Image[] imgs = {apple, amexpr, boeing, cat, cisco, chevron, coke, dupont, exxon, ge, goldman, homedepot, ibm, intel, johnson, jpmorgan, mcds, threeM, merck, microsoft, nike, pfizer, procter, travelers
-			, unh, ut, visa, verizon, walmart, disney};
+	private Image[] imgs = createImages();
 	
 	/**
 	 * Number Axis representing the x-axis, elapsed time with varying in days, weeks or months
 	 */
-    NumberAxis x;
+    private NumberAxis x;
     
     /**
      * Number Axis representing the y-axis, closing price in dollars
      */
-    NumberAxis y;
+    private NumberAxis y;
 	
 	/**
 	 * Data Series representing daily closing prices
 	 */
-    XYChart.Series<Number,Number> closingPrices;
+    private XYChart.Series<Number,Number> closingPrices;
     
     /**
      * Data Series representing 20 day moving average
      */
-    XYChart.Series<Number,Number> twentyDayMA = new XYChart.Series<Number, Number>();
+    private XYChart.Series<Number,Number> twentyDayMA = new XYChart.Series<Number, Number>();
 	
     /**
      * Data Series representing 50 day moving average
      */
-    XYChart.Series<Number,Number> fiftyDayMA = new XYChart.Series<Number, Number>();
+    private XYChart.Series<Number,Number> fiftyDayMA = new XYChart.Series<Number, Number>();
     
     /**
      * Data Series representing 100 day moving average
      */
-    XYChart.Series<Number,Number> oneHundredDayMA = new XYChart.Series<Number, Number>();
+    private XYChart.Series<Number,Number> oneHundredDayMA = new XYChart.Series<Number, Number>();
     
     /**
      * Data Series representing 200 day moving average
      */
-    XYChart.Series<Number,Number> twoHundredDayMA = new XYChart.Series<Number, Number>();
+    private XYChart.Series<Number,Number> twoHundredDayMA = new XYChart.Series<Number, Number>();
 	
 	/**
 	 * JavaFX List of Stocks as a ListView
 	 */
-	ListView<String> stockList;
+    private ListView<String> stockList;
 	
 	/**
 	 * Index of selected stock in list view menu
@@ -162,6 +164,11 @@ public class Display extends Application {
 	 * Integer value representing time span for stock
 	 */
 	private int timeSpan = 1;
+	
+	/**
+	 * Toggle group for radio buttons for timespan section
+	 */
+	private ToggleGroup group;
 	
 	/**
 	 * Area chart representing closing prices of stocks
@@ -186,37 +193,98 @@ public class Display extends Application {
 	/**
 	 * 20 day moving average checkbox
 	 */
-	CheckBox twenty;
+	private CheckBox twenty;
 	
 	/**
 	 * 50 day moving average checkbox
 	 */
-	CheckBox fifty;
+	private CheckBox fifty;
 	
 	/**
 	 * 100 day moving average checkbox
 	 */
-	CheckBox oneHundred;
+	private CheckBox oneHundred;
 	
 	/**
 	 * 200 day moving average checkbox
 	 */
-	CheckBox twoHundred;
+	private CheckBox twoHundred;
+	
+	/**
+	 * List of recently viewed stocks
+	 */
+	private ObservableList recents = FXCollections.observableArrayList();
+	
+	/**
+	 * Log of recently viewed stocks
+	 */
+	private TableView table = new TableView();
+	
+	/**
+	 * Stock Popover message box
+	 */
+	private PopOver stockOver;
+	
+	/**
+	 * Graph popover
+	 */
+	private PopOver graphOver;
+	
+	/**
+	 * Radio button popover
+	 */
+	private PopOver radioOver;
+	
+	/**
+	 * MA button popover
+	 */
+	private PopOver checkOver;
+	
+	/**
+	 * Log popover
+	 */
+	private PopOver logOver;
+	
+	/**
+	 * Layout Pane set as a border pane
+	 */
+	private BorderPane bp;
+	
+	/**
+	 * Manager to manage chart panning
+	 */
+	private ChartPanManager panner;
+	
+	/**
+	 * Manager to manage chart zooming
+	 */
+	private ChartZoomManager zoomManager;
 	
 	/**
 	 * Overrides Application start method. This method creates and runs the GUI
 	 * @throws IOException Throw exception if error with connection to Yahoo
 	 */
 	@Override
-	public void start(Stage stage) throws IOException {	
+	public void start( Stage stage) throws IOException {		
 		// set title of window
-        stage.setTitle("Stock Program");
+        stage.setTitle("Stocky");
         
         //	create layout of window
-        BorderPane bp = new BorderPane();
+        bp = new BorderPane();
         
-        // 	add default graph to window layout
-        bp.setCenter(createChart());
+        //	BORDER LAYOUT :: TOP
+        
+        //	create button bar   
+        bar = new ButtonBar();
+        
+        //	create help button
+        help = createAndAddButton(bar, "Help", ButtonData.HELP);
+        
+        //	create reset button
+        reset = createAndAddButton(bar, "Reset", ButtonData.OTHER);
+        
+        //	display button bar
+        bp.setTop(bar);
         
         // 	LEFT PART OF LAYOUT :: STOCK MENU
         
@@ -267,7 +335,7 @@ public class Display extends Application {
         		}
         		else {
         			if (name.equals("Apple"))
-        				viewer.setImage(apple);
+        				viewer.setImage(imgs[0]);
         			else if (name.equals("American Express"))
         				viewer.setImage(imgs[1]);
         			else if (name.equals("Boeing"))
@@ -345,6 +413,9 @@ public class Display extends Application {
         
         //	CENTER PART OF LAYOUT :: GRAPH
         
+        // 	add default graph to window layout
+        bp.setCenter(createChart());
+        
         //  mouse clicked listener that returns index of selected item
         //	this will create and display a new chart each time new stock is selected
         stockList.setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -384,19 +455,33 @@ public class Display extends Application {
 				   stock = YahooFinance.get(tickers[stockIndex], start, end, interval);
 				   
 				   closings = new double[stock.getHistory().size()];
+				   dates = new DateObject[stock.getHistory().size()];
 				   
 				   //	add data to array 
 			        for (int i = 0; i < stock.getHistory().size(); ++i) {
-			        	closings[i] = stock.getHistory().get(stock.getHistory().size() - i - 1).getClose().doubleValue();
+			        	int year = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.YEAR);
+				        int month = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.MONTH);
+				        int day = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.DAY_OF_MONTH);
+				        
+				        double temp = Math.round(stock.getHistory().get(stock.getHistory().size() - i - 1).getAdjClose().doubleValue() * 100);
+			        	closings[i] = temp /  100;
+			        	dates[i] = new DateObject(day, month, year);
 			        }
 				   
 				   //	create a chart
 				   show = createChart(names[stockIndex], closings, timeSpan);
 				   
-	
-				   addDataToGraph(closings, show);	//	add data to graph
+				   //	add data to graph
+				   addDataToGraph(closings, show);	
 				   
+				   //	remove animations to increase speed
+				   show.setAnimated(false);
+				   
+				   //	display chart
 				   bp.setCenter(show);
+				   
+				   //	add stock to log
+				   addToLog(stock, recents, table, tickers[stockIndex]);
 				   
                } catch (IOException e) {
             	   //	display connection error
@@ -404,6 +489,7 @@ public class Display extends Application {
                }
             }
         });
+
         
         // 	RIGHT PART OF LAYOUT :: UI CONTROLS
         
@@ -423,7 +509,7 @@ public class Display extends Application {
         Label movingAverageTitle = new Label("Moving Averages");
         
         //	create a toggle group so only one choice can be selected
-        ToggleGroup group = new ToggleGroup();
+        group = new ToggleGroup();
         
         //	create radio buttons for time span and set ID to number of years to display. All time is represented as 0. These strings will be parsed to integers at runtime
         RadioButton oneYear = new RadioButton("1 year");
@@ -453,7 +539,7 @@ public class Display extends Application {
             			RadioButton selected = (RadioButton) group.getSelectedToggle();
             			timeSpan = Integer.parseInt(selected.getId());
             		}
-            		else {
+            		else {            			
             			//	reset all check boxes
             			twenty.setSelected(false);
             			fifty.setSelected(false);
@@ -491,10 +577,17 @@ public class Display extends Application {
      				   
             				//	update value of closing prices
             				closings = new double[stock.getHistory().size()];
+            				dates = new DateObject[stock.getHistory().size()];
      				   
             				//	add data to array 
             				for (int i = 0; i < stock.getHistory().size(); ++i) {
-            					closings[i] = stock.getHistory().get(stock.getHistory().size() - i - 1).getClose().doubleValue();
+            					int year = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.YEAR);
+        				        int month = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.MONTH);
+        				        int day = stock.getHistory().get(stock.getHistory().size() - i - 1).getDate().get(Calendar.DAY_OF_MONTH);
+        				        
+        				        double temp = Math.round(stock.getHistory().get(stock.getHistory().size() - i - 1).getAdjClose().doubleValue() * 100);
+        			        	closings[i] = temp /  100;
+        			        	dates[i] = new DateObject(day, month, year);
             				}
      				   
             				//	create a chart
@@ -519,7 +612,7 @@ public class Display extends Application {
         twenty = new CheckBox("20 Day Moving Average");
         fifty = new CheckBox("50 Day Moving Average");
         oneHundred = new CheckBox("100 Day Moving Average");
-        twoHundred = new CheckBox("200 Day Moving Average");
+        twoHundred = new CheckBox("200 Day Moving Average");        
         
         //	add listeners to each check box
         twenty.selectedProperty().addListener(new ChangeListener<Boolean>() {
@@ -551,7 +644,7 @@ public class Display extends Application {
         			if (fifty.isSelected()) {
         				//	check if computer average extends beyond limit of graph
         				if (closings.length < 50) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute the selected moving average");
+        					displayError("Moving Average Error", "There aren't enough data points to compute a 50 day moving average");
         					twoHundred.setSelected(false);
         				}
         				else {
@@ -580,7 +673,7 @@ public class Display extends Application {
         			if (oneHundred.isSelected()) {
         				//	check if computed average extends beyond limit of graph
         				if (closings.length < 100) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute the selected moving average");
+        					displayError("Moving Average Error", "There aren't enough data points to compute a 100 day moving average");
         					twoHundred.setSelected(false);
         				}
         				else {
@@ -609,7 +702,7 @@ public class Display extends Application {
         			if (twoHundred.isSelected()) {        				
         				//	check if computed average extends beyond limit of graph
         				if (closings.length < 200) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute the selected moving average");
+        					displayError("Moving Average Error", "There aren't enough data points to compute a 200 day moving average");
         					twoHundred.setSelected(false);
         				}
         				else {
@@ -653,8 +746,62 @@ public class Display extends Application {
         right.getChildren().add(oneHundred);
         right.getChildren().add(twoHundred);
         
+        // 	create label for log
+        Label log = new Label("Recently Viewed Stocks");
+        right.getChildren().add(log);
+        
+        //	create a table column
+        TableColumn stockName = new TableColumn<>("Name");
+        stockName.setResizable(false);
+        stockName.setPrefWidth(300);
+        
+        //	add column to table
+        table.getColumns().add(stockName);
+        
+        //	add table to VBox
+        right.getChildren().add(table);
+        
+        //	enable data modification from YahooFinance Stock class
+        stockName.setCellValueFactory(
+        		new PropertyValueFactory<>("name")
+        );
+        
         //	set right side of borderpane to be VBox
         bp.setRight(right);
+        
+        //	add listener to help button
+        help.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        	@Override
+        	public void handle(MouseEvent e) {        		
+        		//	run tutorial
+        		tutorial(stockList, show, oneYear, twenty, table);
+        	}
+        });
+        
+        //	add listener to reset button
+        reset.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        	@Override
+        	public void handle(MouseEvent e) {
+        		//	stop panning and zooming for current chart
+        		stopFunction();
+        		
+        		//	recreate chart at particular instance
+        		show = createChart(names[stockIndex], closings, timeSpan);
+				addDataToGraph(closings, show);
+				
+				//	uncheck check boxes
+				twenty.setSelected(false);
+				fifty.setSelected(false);
+				oneHundred.setSelected(false);
+				twoHundred.setSelected(false);
+        		
+				//	display recreated chart
+        		bp.setCenter(show);
+        	}
+        });
+        
+        //	add custom css to borderpane
+        bp.getStyleClass().add("bp");
         
         // 	add scene to window and give the window a default size
         Scene scene  = new Scene(bp, 1500,900);
@@ -670,9 +817,47 @@ public class Display extends Application {
         
         //	display the gui
         stage.setScene(scene);
+        
         stage.setResizable(true);
         stage.show();
     }
+	
+	/**
+	 * Method that creates a new button while also adding it to a given button bar. Gives a drop shadow effect as well
+	 * @param b Buttonbar where the button will be added
+	 * @param buttonLabel Text to be displayed inside button
+	 * @param data Buttonbar data
+	 * @return A new button
+	 */
+	private Button createAndAddButton(ButtonBar b, String buttonLabel, ButtonData data) {
+		//	create help button
+		Button temp = new Button(buttonLabel);
+		
+		//	set button bar data
+        ButtonBar.setButtonData(temp, data);
+        
+        //	add shadow effect to button on mouse enter
+        DropShadow shadow = new DropShadow();
+        temp.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+        	@Override
+        	public void handle(MouseEvent e) {
+        		temp.setEffect(shadow);
+        	}
+        });
+        //	remove shadow effect on mouse leave
+        temp.addEventHandler(MouseEvent.MOUSE_EXITED, 
+        	    new EventHandler<MouseEvent>() {
+        	        @Override public void handle(MouseEvent e) {
+        	            temp.setEffect(null);
+        	        }
+        	});
+        
+        //	add help button to bar
+        b.getButtons().add(temp);
+        
+        //	return button
+        return temp;
+	}
 	
 	/**
 	 * Create a blank chart as a place holder while awaiting for user's selection
@@ -705,6 +890,9 @@ public class Display extends Application {
 	 * @return a linechart
 	 */
 	private AreaChart<Number, Number> createChart(String stockName, double[] arr, int span) {
+		//	when creating a new graph, stop and panning and zooming, in order to properly delete old chart
+		stopFunction();
+		
 		//	initialize calculator
         calculator = new Calculator();
 		
@@ -735,11 +923,13 @@ public class Display extends Application {
         //	give chart a title
         ac.setTitle(stockName + " Stock History");
         
-        // 	disable chart symbols
-        ac.setCreateSymbols(false);
+        //	disallow animations
+        ac.setAnimated(false);  
         
-        ac.setAnimated(true);
+        //	add panning and zooming functionality to chart
+        addFunction(ac);
         
+        //	return chart
         return ac;		
 	}
 	
@@ -752,16 +942,19 @@ public class Display extends Application {
         //	instantiate data series
         closingPrices = new XYChart.Series<Number,Number>();
         
-        //	give the series their names
+        //	give the series a name
         closingPrices.setName("Daily Closing Prices");
         
         //	add data to series
         for (int i = 0; i < prices.length; ++i) {
         	closingPrices.getData().add(new XYChart.Data<Number,Number>(i, prices[i]));
+        	closingPrices.getData().get(i).setNode(new HoverPane(dates[i], prices[i]));
         }
-       
+        
         //	add closing prices to graph
         aLine.getData().add(closingPrices);
+        
+        aLine.setAnimated(false);
 	}	
 	
 	/**
@@ -812,6 +1005,16 @@ public class Display extends Application {
 			add(averages, oneHundredDayMA, chart, period);
 		else
 			add(averages, twoHundredDayMA, chart, period);
+		
+		//	remove symbols from moving average lines
+		for (XYChart.Series<Number, Number> s : show.getData()) {
+			if (!(s.getName().equals("Daily Closing Prices"))) {
+				for (XYChart.Data<Number, Number> d : s.getData()) {
+					StackPane sp = (StackPane) d.getNode();
+					sp.setVisible(false);
+				}
+			}
+		}
 	}
 	
 	/**
@@ -825,12 +1028,192 @@ public class Display extends Application {
 		series.setName(period + " Day Moving Average");
 		
 		//	add data to series
-		for (int i = 0; i < averages.length; ++i)
-			series.getData().add(new XYChart.Data<Number,Number>(i, averages[i]));
+		for (int i = 0; i < averages.length; ++i) {
+			series.getData().add(new XYChart.Data<Number,Number>(i+period-1, averages[i]));
+		}
 		
 		//	add series to chart
 		chart.getData().add(series);
+		
+		//	ensure that the closing prices are on top of the Ma's, in order to have their information viewable
+		series.getNode().toBack();
+		
+		//	disallow animations
+		chart.setAnimated(false);
 	}
+	
+	/**
+	 * Create images for stocks
+	 * @return Array of images
+	 */
+	private  Image[] createImages() {
+		//	create array
+		imgs = new Image[30];
+		for (int i = 0; i < 30; ++i) {
+			if (i == 11)
+				imgs[11] = new Image("file:src/imgs/img" + i + ".jpg", 50.0, 50.0, true, true);
+			else
+				imgs[i] = new Image("file:src/imgs/img" + i + ".png", 50.0, 50.0, true, true); 
+		}
+		
+		return imgs;
+	}
+	
+	/**
+	 * Displays popup for stock list help
+	 */
+	private void displayStockTutorial(ListView<?> list) {
+		if (stockOver == null) {
+			stockOver = new PopOver();
+			stockOver.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
+			stockOver.setContentNode(new Label("Select a stock from this list\n by clicking on an item."));
+			stockOver.setAutoFix(true);
+			stockOver.setAutoHide(true);
+			stockOver.setHideOnEscape(true);
+			stockOver.setDetachable(false);
+		}
+		
+		stockOver.show(list);
+	}
+	
+	/**
+	 * Displays popup for graph help
+	 */
+	private void displayGraphTutorial(AreaChart<Number, Number> chart) {
+		if (graphOver == null) {
+			graphOver = new PopOver();
+			graphOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
+			graphOver.setContentNode(new Label("The daily closings prices will be displayed here \nonce a stock is selected."));
+			graphOver.setAutoFix(true);
+			graphOver.setAutoHide(true);
+			graphOver.setHideOnEscape(true);
+			graphOver.setDetachable(false);
+		}
+		graphOver.show(chart);
+	}
+
+	/**
+	 * Displays popup for radio button help
+	 */
+	private void displayTimeSpanTutorial(RadioButton r) {
+		if (radioOver == null) {
+			radioOver = new PopOver();
+			radioOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
+			radioOver.setContentNode(new Label("The timespan for the closing prices can be\nselected from these options. The graph\ndisplays the information from left (least recent)\nto right (most recent)."));
+			radioOver.setAutoFix(true);
+			radioOver.setAutoHide(true);
+			radioOver.setHideOnEscape(true);
+			radioOver.setDetachable(false);
+		}
+		radioOver.show(r);
+	}
+
+	/**
+	 * Displays popup for ma checkboxes
+	 */
+	private void displayMATutorial(CheckBox cb) {
+		if (checkOver == null) {
+			checkOver = new PopOver();
+			checkOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
+			checkOver.setContentNode(new Label("Various Moving Averages can be shown on the graph by\nselecting one or multiple options here."));
+			checkOver.setAutoFix(true);
+			checkOver.setAutoHide(true);
+			checkOver.setHideOnEscape(true);
+			checkOver.setDetachable(false);
+		}
+		checkOver.show(cb);
+	}
+	
+	/**
+	 * Displays popup for log
+	 */
+	private void displayLogTutorial(TableView t) {
+		if (logOver == null) {
+			logOver = new PopOver();
+			logOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
+			logOver.setContentNode(new Label("A log of recently viewed stocks can be seen here.\nClicking on 'name' will sort the entries alphabetically."));
+			logOver.setAutoFix(true);
+			logOver.setAutoHide(true);
+			logOver.setHideOnEscape(true);
+			logOver.setDetachable(false);
+		}
+		
+		logOver.show(t);
+	}
+
+	/**
+	 * Runs an interactive tutorial for the user anytime 'help' is clicked
+	 */
+	private void tutorial(ListView<?> list, AreaChart<Number, Number> chart, RadioButton r, CheckBox cb, TableView t) {
+		displayStockTutorial(list);
+		displayGraphTutorial(chart);
+		displayTimeSpanTutorial(r);
+		displayMATutorial(cb);
+		displayLogTutorial(t);
+	}
+	
+	/**
+	 * Adds zooming and panning functionality to the given chart
+	 * @param ac Chart to be zoomed or panned
+	 */
+	private void addFunction(AreaChart<Number, Number> ac) {
+		//Panning works via either secondary (right) mouse or primary with ctrl held down 
+        panner = new ChartPanManager( ac ); 
+        panner.setMouseFilter( new EventHandler<MouseEvent>() { 
+           @Override 
+           public void handle( MouseEvent mouseEvent ) { 
+           if ( mouseEvent.getButton() == MouseButton.SECONDARY || 
+              ( mouseEvent.getButton() == MouseButton.PRIMARY && 
+                mouseEvent.isShortcutDown() ) ) { 
+            //let it through 
+            } else { 
+             mouseEvent.consume(); 
+            } 
+           } 
+          } ); 
+          panner.start(); 
+          
+          Rectangle rect = new Rectangle();
+          zoomManager = new ChartZoomManager( bp, rect, ac );
+          zoomManager.start(); 
+	}
+	
+	/**
+	 * Removes zooming and panning function from chart by invoking manager's stop method.
+	 * Used when updating graphs
+	 */
+	private void stopFunction() {
+		if (zoomManager != null && panner != null) {
+			panner.stop();
+			zoomManager.stop();
+		}
+	}
+	
+	/**
+	 * Check for duplicates in an observable list and removes them to only show one instance
+	 * @param list Observable list containing items to be checked
+	 */
+	private void addToLog(Stock s, ObservableList list, TableView t, String ticker) {
+		//	check if there aren't any stocks already in list
+		if (list.size() >= 1) {
+			//	scan list for duplicate stock, if found remove all instances of duplicate and add to top
+			for (int i = 0; i < list.size(); ++i) {
+				for (int j = 0; j < list.size(); ++j) {
+					Stock temp = (Stock) list.get(j);
+					if (temp.getName().equals(s.getName())) {
+						list.remove(j);
+					}
+				}
+			}
+			//	adds to top once duplicates are removed
+			list.add(0, s);
+		}
+		else {
+			list.add(0, s);
+		}
+		t.setItems(list);
+	}
+	
 	
 	/**
 	 * Main that runs the entire project and displays the graph
@@ -842,5 +1225,4 @@ public class Display extends Application {
     	//	run program
         launch(args);
     }
-
 }
