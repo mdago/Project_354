@@ -1,5 +1,15 @@
 # Project 354
 
+Update 31 March 2017:  
+-added symbols to each price point on chart. Will show date and price value when hovering mouse on it (refer to screenshot)  
+-added tutorial messages when 'help' button is clicked on (refer to screenshot)  
+-added zooming and panning functionality to graph. Hold right click and move mouse to pan, scroll with mouse wheel  
+-added reset button to reset view of graph  
+-fixed duplicate stock bug in log  
+-adjusted width of moving average lines
+-added two new classes, DateObject which is used to manipulate the date information of a stock price on a given day, HoverPane which is used as the display label when a price point is hovered over with a mouse  
+-bug fixes
+
 Update 26 March 2017:
 -added images next to each stock  
 -added custom font  
@@ -36,6 +46,6 @@ These are some task currently requiring working. This list may be lengthened or 
 If anyone has any comments, modifications, additions or whatever then feel free to add it here so everyone can see and offer 
 their opinions.
 
-A screenshot of the current state (23 March 2017) of the program will be provided for reference in the repo.
+A screenshot of the current state (31 March 2017) of the program will be provided for reference in the repo.
 
 Happy Coding!
