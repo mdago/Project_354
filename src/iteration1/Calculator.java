@@ -1,11 +1,9 @@
 package iteration1;
 
-import java.lang.Math;
-
 /**
  * Class implementation of a moving average calculator
  * @author Stephen Prizio, Marco Dagostino, Ming Tsai, Maximilien Le Clei. Chris McArthur, Himmet Arican, Athanasios Babouras
- * @version 1.0
+ * @version 2.0
  */
 public class Calculator {	
 	/**
@@ -19,31 +17,20 @@ public class Calculator {
 	 * @param period to which to be calculated
 	 * @return Array of moving averages (Type: Double). Returns null if period is not 20, 50, 100 or 200
 	 */
-	public double[] calculateMovingAverage(double[] list, int period) {
-		//	check if period that is passed not one of the 4 acceptable values
-		if ((period != 20) && (period != 50) && (period != 100) && (period!= 200)) {
-			System.out.println("FAILED");
-			return null;	//	null is returned if passed period is not one of the 4 values
-		}
+	public double[] calculateMovingAverage(double[] list, int period) {	
+		//	size of avgs will be smaller since the period will consume some of the data
+		double[] avgs = new double[list.length - period + 1];
 		
-		//	array that will store ma's
-		double[] averages = new double[list.length - period + 1];
 		
-		//	loops through list of given numbers
-		for (int i = 0; i < (list.length - (period - 1)); ++i) {
-			//	loops as many times as the length of the period
-			for (int j = i; j < (i + period); ++j) {
-				//	stores the sum of the total period value of numbers in the helper array
-				averages[i] += list[j];
+		for (int i = period; i < list.length + 1; ++i) {
+			double sum = 0;
+			for (int j = i - 1; j >= i - period; --j) {
+				sum += list[j];
 			}
+			avgs[i - period] = sum / period;
 		}
 		
-		//	obtain moving average by dividing each sum by the period
-		for (int k = 0; k < averages.length; ++k)
-			averages[k] = Math.round((averages[k] / period) * 100.0) / 100.0;
-		
-		// return averages;
-		return averages;
+		return avgs;
 	}
 	
 	/**
@@ -59,5 +46,37 @@ public class Calculator {
 			sum += a[l];
 		
 		return (sum / a.length);
+	}
+	
+	/**
+	 * Method that returns the max value in an array
+	 */
+	public double getMax(double[] a) {
+		//	store max value
+		double max = a[0];
+		
+		for (int i = 1; i < a.length; ++i) {
+			if (max <= a[i])
+				max = a[i];
+		}
+		
+		//	return max
+		return max;
+	}
+	
+	/**
+	 * Method that returns the min value in an array
+	 */
+	public double getMin(double[] a) {
+		//	store max value
+		double min = a[0];
+		
+		for (int i = 1; i < a.length; ++i) {
+			if (min >= a[i])
+				min = a[i];
+		}
+		
+		//	return max
+		return min;
 	}
 }
