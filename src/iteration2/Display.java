@@ -5,6 +5,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -22,7 +23,11 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Toggle;
@@ -274,6 +279,44 @@ public class Display extends Application {
         
         //	BORDER LAYOUT :: TOP
         
+        //	create menu bar
+        MenuBar menuBar = new MenuBar();
+        
+        //	menu section 'File'
+        Menu file = new Menu("File");
+        
+        //	add items to file
+        MenuItem newChart = new MenuItem("New Chart");
+        MenuItem logout = new MenuItem("Log out");
+        MenuItem exit = new MenuItem("Exit");
+        /* 
+        newChart.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent t) {
+        		zoomManager.stop();
+        		panner.stop();
+        		bp.setCenter(createChart());
+        		stockList.getSelectionModel().select(-1);
+        		group.getToggles().get(0).setSelected(true);
+        	}
+        });
+        */
+        
+        //	logout.setOnAction() {}
+        
+        //	exit window on click
+        exit.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent t) {
+        		System.exit(0);
+        	}
+        });
+        
+        file.getItems().addAll(newChart, logout, new SeparatorMenuItem(), exit);
+        
+        //	menu section 'Help'
+        Menu h = new Menu("Help");
+        
+        menuBar.getMenus().addAll(file, h);
+        
         //	create button bar   
         bar = new ButtonBar();
         
@@ -284,7 +327,7 @@ public class Display extends Application {
         reset = createAndAddButton(bar, "Reset", ButtonData.OTHER);
         
         //	display button bar
-        bp.setTop(bar);
+        bp.setTop(menuBar);
         
         // 	LEFT PART OF LAYOUT :: STOCK MENU
         
@@ -555,11 +598,11 @@ public class Display extends Application {
             			timeSpan = Integer.parseInt(selected.getId());
                     
             			//	adjust x-axis scale based on selected time span              
-            			if (timeSpan == 1) {
+            			if (timeSpan == 1|| timeSpan == 2) {
             				interval = Interval.DAILY;
             				delimiter = " (in Days)";
             			}
-            			else if (timeSpan == 2 || timeSpan == 5) {
+            			else if (timeSpan == 5) {
             				interval = Interval.WEEKLY;
             				delimiter = " (in Weeks)";
             			}
@@ -598,8 +641,8 @@ public class Display extends Application {
      				   
             				//	update graph in center
             				bp.setCenter(show);
-     				   
-            			} catch (IOException e) {
+            			} 
+            			catch (IOException e) {
             				//	display connection error
             				displayException();
             			}
@@ -620,9 +663,21 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (twenty.isSelected()) {
-        				//	add moving averages to graph
-        				double[] averages = calculator.calculateMovingAverage(closings, 20);
-        				addAverageToGraph(averages, show, 20);
+        				if (timeSpan == 100) {
+        					double[] averages = calculator.calculateMovingAverage(closings, 20);
+        					addAverageToGraph(averages, show, 20, timeSpan);
+        				}
+        				else {
+        					try {
+    							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 20);
+    							double[] averages = calculator.calculateMovingAverage(test, 20);
+    							addAverageToGraph(averages, show, 20, timeSpan);
+    							
+    						} 
+            				catch (IOException e) {
+    							displayException();
+    						}
+        				}
         			}
         			else {
         				//	clear data from series and remove from graph
@@ -642,15 +697,20 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (fifty.isSelected()) {
-        				//	check if computer average extends beyond limit of graph
-        				if (closings.length < 50) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute a 50 day moving average");
-        					twoHundred.setSelected(false);
+        				if (timeSpan == 100) {
+        					double[] averages = calculator.calculateMovingAverage(closings, 50);
+        					addAverageToGraph(averages, show, 50, timeSpan);
         				}
         				else {
-        					//	add moving averages to graph
-        					double[] averages = calculator.calculateMovingAverage(closings, 50);
-        					addAverageToGraph(averages, show, 50);
+        					try {
+    							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 50);
+    							double[] averages = calculator.calculateMovingAverage(test, 50);
+    							addAverageToGraph(averages, show, 50, timeSpan);
+    							
+    						} 
+            				catch (IOException e) {
+    							displayException();
+    						}
         				}
         			}
         			else {
@@ -671,15 +731,20 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (oneHundred.isSelected()) {
-        				//	check if computed average extends beyond limit of graph
-        				if (closings.length < 100) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute a 100 day moving average");
-        					twoHundred.setSelected(false);
+        				if (timeSpan == 100) {
+        					double[] averages = calculator.calculateMovingAverage(closings, 100);
+        					addAverageToGraph(averages, show, 100, timeSpan);
         				}
         				else {
-        					//	add moving averages to graph
-        					double[] averages = calculator.calculateMovingAverage(closings, 100);
-        					addAverageToGraph(averages, show, 100);
+        					try {
+    							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 100);
+    							double[] averages = calculator.calculateMovingAverage(test, 100);
+    							addAverageToGraph(averages, show, 100, timeSpan);
+    							
+    						} 
+            				catch (IOException e) {
+    							displayException();
+    						}
         				}
         			}
         			else {
@@ -699,16 +764,21 @@ public class Display extends Application {
         	@Override
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
-        			if (twoHundred.isSelected()) {        				
-        				//	check if computed average extends beyond limit of graph
-        				if (closings.length < 200) {
-        					displayError("Moving Average Error", "There aren't enough data points to compute a 200 day moving average");
-        					twoHundred.setSelected(false);
+        			if (twoHundred.isSelected()) { 
+        				if (timeSpan == 100) {
+        					double[] averages = calculator.calculateMovingAverage(closings, 200);
+        					addAverageToGraph(averages, show, 200, timeSpan);
         				}
         				else {
-        					//	add moving averages to graph
-        					double[] averages = calculator.calculateMovingAverage(closings, 200);
-        					addAverageToGraph(averages, show, 200);
+        					try {
+    							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 200);
+    							double[] averages = calculator.calculateMovingAverage(test, 200);
+    							addAverageToGraph(averages, show, 200, timeSpan);
+    							
+    						} 
+            				catch (IOException e) {
+    							displayException();
+    						}
         				}
         			}
         			else {
@@ -749,6 +819,9 @@ public class Display extends Application {
         // 	create label for log
         Label log = new Label("Recently Viewed Stocks");
         right.getChildren().add(log);
+        
+        //	set default text in table
+        table.setPlaceholder(new Label("No recently viewed stocks"));
         
         //	create a table column
         TableColumn stockName = new TableColumn<>("Name");
@@ -984,10 +1057,12 @@ public class Display extends Application {
 	 * @param errorTitle Title of error notification
 	 * @param errorMessage Error message to be displayed
 	 */
+	/*
 	private void displayError(String errorTitle, String errorMessage) {
 		//	create error notification
 		Notifications.create().position(Pos.TOP_CENTER).title(errorTitle).text(errorMessage).darkStyle().showError();
 	}
+	*/
 	
 	/**
 	 * Adds moving averages to graph
@@ -995,16 +1070,16 @@ public class Display extends Application {
 	 * @param chart Chart which will contain the data
 	 * @param period Moving average period
 	 */
-	private void addAverageToGraph(double[] averages, AreaChart<Number, Number> chart, int period) {
+	private void addAverageToGraph(double[] averages, AreaChart<Number, Number> chart, int period, int timeSpan) {
 		//	call add method with variable parameters depending on requested period
 		if (period == 20)
-			add(averages, twentyDayMA, chart, period);
+			add(averages, twentyDayMA, chart, period, timeSpan);
 		else if (period == 50)
-			add(averages, fiftyDayMA, chart, period);
+			add(averages, fiftyDayMA, chart, period, timeSpan);
 		else if (period == 100)
-			add(averages, oneHundredDayMA, chart, period);
+			add(averages, oneHundredDayMA, chart, period, timeSpan);
 		else
-			add(averages, twoHundredDayMA, chart, period);
+			add(averages, twoHundredDayMA, chart, period, timeSpan);
 		
 		//	remove symbols from moving average lines
 		for (XYChart.Series<Number, Number> s : show.getData()) {
@@ -1023,13 +1098,20 @@ public class Display extends Application {
 	 * @param chart Chart which will contain the data
 	 * @param series Data series to which the data will be added
 	 */
-	private void add(double[] averages, XYChart.Series<Number,Number> series, AreaChart<Number, Number> chart, int period) {
+	private void add(double[] averages, XYChart.Series<Number,Number> series, AreaChart<Number, Number> chart, int period, int timeSpan) {
 		//	name series
 		series.setName(period + " Day Moving Average");
 		
-		//	add data to series
-		for (int i = 0; i < averages.length; ++i) {
-			series.getData().add(new XYChart.Data<Number,Number>(i+period-1, averages[i]));
+		if (timeSpan != 100) {
+			//	add data to series
+			for (int i = 0; i < averages.length; ++i) {
+				series.getData().add(new XYChart.Data<Number,Number>(i, averages[i]));
+			}
+		}
+		else {
+			for (int i = 0; i < averages.length; ++i) {
+				series.getData().add(new XYChart.Data<Number,Number>(i + period, averages[i]));
+			}
 		}
 		
 		//	add series to chart
@@ -1214,6 +1296,54 @@ public class Display extends Application {
 		t.setItems(list);
 	}
 	
+	/**
+	 * Gets additional closing prices in order to calculate a full moving average. 
+	 * @param st Stock being calculated
+	 * @param ticker Ticker symbol of stock
+	 * @param ts timespan of stock
+	 * @param interval interval of retrived data
+	 * @param period period for moving average
+	 * @return returns array of data
+	 * @throws IOException throws exception if connection error
+	 */
+	private double[] getStockData(Stock st, String ticker, int ts, Interval interval, int period) throws IOException {
+		//	adjust dates to get extra info for ma calculation
+		Calendar front = Calendar.getInstance();
+		Calendar back = Calendar.getInstance();
+		
+		//	if the time span is 5 years, additional data is required to compute averages since the scale has switched from days to weeks
+		if (ts == 5)
+			front.add(Calendar.YEAR, ((ts+5) * -1));
+		else
+			front.add(Calendar.YEAR, ((ts+1) * -1));
+		
+		//	get same stock with additional data
+		Stock s = YahooFinance.get(ticker, front, back, interval);
+		
+		//	size of stock before extracting additional data
+		int oldStockSize = st.getHistory().size();
+		
+		//	size of closing prices + extra period data
+		int segmentSize = oldStockSize + period;
+		
+		//	array to store retrieved data
+		double[] temp = new double[segmentSize];
+		
+		//	gets data in reverse
+		for (int i = oldStockSize + period - 1; i >= 0; --i) {
+			temp[i] = s.getHistory().get(i).getAdjClose().doubleValue(); 
+		}
+		
+		//	reverse the list
+		for (int i = 0; i < temp.length / 2; ++i) {
+			double t = temp[i];
+			temp[i] = temp[temp.length - i - 1];
+			temp[temp.length - i - 1] = t;
+		}
+		
+		//	return array of data
+		return temp;	
+	}
 	
 	/**
 	 * Main that runs the entire project and displays the graph
