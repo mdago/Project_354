@@ -1,5 +1,9 @@
 # Project 354
 
+Update 1 April 2017 (Not an April Fools joke :D)  
+-fixed moving average lines and changed way it is calculated. Results should now match directly with the calculators on Yahoo Fiance.com  
+-added base for menu bar to hold menu items (feature is currently in development, just added base code)
+
 Update 31 March 2017:  
 -added symbols to each price point on chart. Will show date and price value when hovering mouse on it (refer to screenshot)  
 -added tutorial messages when 'help' button is clicked on (refer to screenshot)  
