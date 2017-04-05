@@ -4,9 +4,9 @@ Update 5 April 2017
 -bug fixes  
 -begun UI overhaul  
 -removed 'help' and 'reset' buttons  
--added menu buttons on top left for program controlling
--added hotkey functionality (press Ctrl+C to view controls)
--reorganized program file structure for better file organization
+-added menu buttons on top left for program controlling  
+-added hotkey functionality (press Ctrl+C to view controls)  
+-reorganized program file structure for better file organization  
 
 Update 1 April 2017 (Not an April Fools joke :D)  
 -fixed moving average lines and changed way it is calculated. Results should now match directly with the calculators on Yahoo Fiance.com  
@@ -50,7 +50,7 @@ At this moment, some tasks that are required:
   4) Title page?? (everyone should vote on this)
   5) Buy/Sell signals on crossing of moving average and stock prices
   6) Settings page to change password? The interview answers posted by the teacher mentions user AND password management
-  7) Conversion to MVC
+  7) Conversion to Event based
   8) Extensive Testing
   
 These are some task currently requiring working. This list may be lengthened or shortened as need be.
