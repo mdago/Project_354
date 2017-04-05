@@ -22,7 +22,7 @@ Update 31 March 2017:
 -added two new classes, DateObject which is used to manipulate the date information of a stock price on a given day, HoverPane which is used as the display label when a price point is hovered over with a mouse  
 -bug fixes
 
-Update 26 March 2017:
+Update 26 March 2017:  
 -added images next to each stock  
 -added custom font  
 -choosing a timespan will cause the graph to update with new values  
