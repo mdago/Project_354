@@ -1,5 +1,13 @@
 # Project 354
 
+Update 5 April 2017  
+-bug fixes  
+-begun UI overhaul  
+-removed 'help' and 'reset' buttons  
+-added menu buttons on top left for program controlling
+-added hotkey functionality (press Ctrl+C to view controls)
+-reorganized program file structure for better file organization
+
 Update 1 April 2017 (Not an April Fools joke :D)  
 -fixed moving average lines and changed way it is calculated. Results should now match directly with the calculators on Yahoo Fiance.com  
 -added base for menu bar to hold menu items (feature is currently in development, just added base code)
