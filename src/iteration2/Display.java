@@ -15,9 +15,6 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -33,9 +30,9 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -55,7 +52,6 @@ import org.gillius.jfxutils.chart.ChartPanManager;
 import org.gillius.jfxutils.chart.ChartZoomManager;
 
 import iteration1.Calculator;
-
 import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
@@ -73,24 +69,9 @@ public class Display extends Application {
 	private Calculator calculator;
 	
 	/**
-	 * Top button bar for navigation
-	 */
-	private ButtonBar bar;
-	
-	/**
 	 * Array containing all dates for the stock's prices
 	 */
 	private DateObject[] dates;
-	
-	/**
-	 * Help button for tutorial
-	 */
-	private Button help;
-	
-	/**
-	 * Reset button to reset chart view
-	 */
-	private Button reset;
 	
 	/**
 	 * Array of Strings representing the 30 DOW stocks as tickers
@@ -251,6 +232,11 @@ public class Display extends Application {
 	private PopOver logOver;
 	
 	/**
+	 * Controls popover
+	 */
+	private PopOver menuOver;
+	
+	/**
 	 * Layout Pane set as a border pane
 	 */
 	private BorderPane bp;
@@ -270,36 +256,33 @@ public class Display extends Application {
 	 * @throws IOException Throw exception if error with connection to Yahoo
 	 */
 	@Override
-	public void start( Stage stage) throws IOException {		
+	public void start(Stage stage) throws IOException {	
 		// set title of window
         stage.setTitle("Stocky");
+        
+        //stage.initStyle(StageStyle.UNDECORATED);
         
         //	create layout of window
         bp = new BorderPane();
         
-        //	BORDER LAYOUT :: TOP
+        //	BORDER LAYOUT :: TOP MENU BAR
         
         //	create menu bar
         MenuBar menuBar = new MenuBar();
+        menuBar.setStyle("-fx-background-color: #414042;");
         
         //	menu section 'File'
-        Menu file = new Menu("File");
+        Menu file = new Menu("_File");
+        file.setAccelerator(KeyCombination.keyCombination("SHORTCUT+F"));
         
         //	add items to file
-        MenuItem newChart = new MenuItem("New Chart");
-        MenuItem logout = new MenuItem("Log out");
+        MenuItem settings = new MenuItem("_Settings  ");
+        
+        //	add custom key combination for fast access
+        settings.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
+        MenuItem logout = new MenuItem("_Log out  ");
+        logout.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
         MenuItem exit = new MenuItem("Exit");
-        /* 
-        newChart.setOnAction(new EventHandler<ActionEvent>() {
-        	public void handle(ActionEvent t) {
-        		zoomManager.stop();
-        		panner.stop();
-        		bp.setCenter(createChart());
-        		stockList.getSelectionModel().select(-1);
-        		group.getToggles().get(0).setSelected(true);
-        	}
-        });
-        */
         
         //	logout.setOnAction() {}
         
@@ -310,21 +293,70 @@ public class Display extends Application {
         	}
         });
         
-        file.getItems().addAll(newChart, logout, new SeparatorMenuItem(), exit);
+        //	add tabs to 'file'
+        file.getItems().addAll(settings, logout, new SeparatorMenuItem(), exit);
+        
+        //	create chart tab
+        Menu chart = new Menu("_Chart");
+        
+        //	create items
+        MenuItem newChart = new MenuItem("_New Chart  ");
+        newChart.setAccelerator(KeyCombination.keyCombination("Ctrl+N"));
+        // 	create new chart when it is clicked
+        newChart.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent t) {
+        		//	check if new chart has just been created or the program just started
+        		if (show != null) {
+        			zoomManager.stop();
+        			panner.stop();
+        			show = null;
+        			bp.setCenter(createChart());
+        			stockList.getSelectionModel().select(-1);
+        			group.getToggles().get(0).setSelected(true);
+        			table.getItems().clear();
+        		}
+        	}
+        });
+        
+        //	create a reset button (listener is located at the end of the file)
+        MenuItem reset = new MenuItem("_Reset view  ");
+        reset.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
+        
+        //	add items to 'chart'
+        chart.getItems().addAll(newChart, reset);
         
         //	menu section 'Help'
-        Menu h = new Menu("Help");
+        Menu help = new Menu("_Help");
         
-        menuBar.getMenus().addAll(file, h);
+        //	create menu items for 'help' listener is at bottom of file
+        MenuItem showHints = new MenuItem("_Show Help  ");
+        showHints.setAccelerator(KeyCombination.keyCombination("Ctrl+H"));
         
-        //	create button bar   
-        bar = new ButtonBar();
+        //	create option for all controls
+        MenuItem controls = new MenuItem("_Controls  ");
+        controls.setAccelerator(KeyCombination.keyCombination("Ctrl+C"));
         
-        //	create help button
-        help = createAndAddButton(bar, "Help", ButtonData.HELP);
+        //	add handler for when controls tab is clicked on
+        controls.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent a) {
+        		Alert cont = new Alert(AlertType.INFORMATION);
+        		cont.setTitle("Controls");
+        		cont.setHeaderText("This window can be accessed at any time by selecting 'Controls' or by hitting 'Ctrl+C'");
+        		cont.setContentText("Stock, moving average or timespan selections: Left Mouse-click\nChart zooming: Mouse-wheel\nChart panning: Hold Right-click and move mouse\n"
+        				+ "Reset chart view: Ctrl+R\nNew Chart: Ctrl+N\nShow Help: Ctrl+H");
+        		
+        		Stage s = (Stage) cont.getDialogPane().getScene().getWindow();
+        		s.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+        		
+        		cont.showAndWait();
+        	}
+        });
         
-        //	create reset button
-        reset = createAndAddButton(bar, "Reset", ButtonData.OTHER);
+        //	add items to help tab
+        help.getItems().addAll(showHints, controls);
+        
+        //	add menu tabs to menu bar
+        menuBar.getMenus().addAll(file, chart, help);
         
         //	display button bar
         bp.setTop(menuBar);
@@ -333,17 +365,22 @@ public class Display extends Application {
         
         //	create layout for left side of border pane
         VBox left = new VBox();
-        left.setAlignment(Pos.TOP_CENTER);
         
         //	add custom css class for left side
         left.getStyleClass().add("left-style");
+        left.setAlignment(Pos.TOP_CENTER);
         
         //	format vbox
-        left.setPadding(new Insets(50, 50, 50, 50));
+        left.setPadding(new Insets(25, 0, 25, 10));
         left.setSpacing(15);
+        
+        Label welcome = new Label("Welcome, USERNAME");
+        welcome.getStyleClass().add("username-style");
+        welcome.setStyle("-fx-text-fill: #81d4fa;");
         
         //	create label
         Label stockLabel = new Label("Stocks List");
+        stockLabel.setStyle("-fx-text-fill: #ffffff;");
         
         //	create a list view to list all stocks
         stockList = new ListView<String>();
@@ -352,12 +389,12 @@ public class Display extends Application {
         stockList.getStyleClass().add("list-view-style");
         
         ObservableList<String> items = FXCollections.observableArrayList (
-          	  names[0], names[1], names[2], names[3], names[4]
-          	, names[5], names[6], names[7], names[8],  names[9]
-          	, names[10], names[11], names[12], names[13], names[14]
-          	, names[15], names[16], names[17], names[18], names[19]
-          	, names[20], names[21], names[22], names[23], names[24]
-          	, names[25], names[26], names[27], names[28], names[29]);
+          	  "     " + names[0], "     " + names[1], "     " + names[2], "     " + names[3], "     " + names[4]
+          	, "     " + names[5], "     " + names[6], "     " + names[7], "     " + names[8], "     " + names[9]
+          	, "     " + names[10], "     " + names[11], "     " + names[12], "     " + names[13], "     " + names[14]
+          	, "     " + names[15], "     " + names[16], "     " + names[17], "     " + names[18], "     " + names[19]
+          	, "     " + names[20], "     " + names[21], "     " + names[22], "     " + names[23], "     " + names[24]
+          	, "     " + names[25], "     " + names[26], "     " + names[27], "     " + names[28], "     " + names[29]);
         
         //	set menu items to list view
         stockList.setItems(items);
@@ -377,65 +414,65 @@ public class Display extends Application {
         			setGraphic(null);
         		}
         		else {
-        			if (name.equals("Apple"))
+        			if (name.equals("     " + "Apple"))
         				viewer.setImage(imgs[0]);
-        			else if (name.equals("American Express"))
+        			else if (name.equals("     " + "American Express"))
         				viewer.setImage(imgs[1]);
-        			else if (name.equals("Boeing"))
+        			else if (name.equals("     " + "Boeing"))
         				viewer.setImage(imgs[2]);
-        			else if (name.equals("Caterpillar"))
+        			else if (name.equals("     " + "Caterpillar"))
         				viewer.setImage(imgs[3]);
-        			else if (name.equals("Cisco Systems"))
+        			else if (name.equals("     " + "Cisco Systems"))
         				viewer.setImage(imgs[4]);
-        			else if (name.equals("Chevron"))
+        			else if (name.equals("     " + "Chevron"))
         				viewer.setImage(imgs[5]);
-        			else if (name.equals("Coca-Cola"))
+        			else if (name.equals("     " + "Coca-Cola"))
         				viewer.setImage(imgs[6]);
-        			else if (name.equals("DuPont"))
+        			else if (name.equals("     " + "DuPont"))
         				viewer.setImage(imgs[7]);
-        			else if (name.equals("ExxonMobil"))
+        			else if (name.equals("     " + "ExxonMobil"))
         				viewer.setImage(imgs[8]);
-        			else if (name.equals("General Electric"))
+        			else if (name.equals("     " + "General Electric"))
         				viewer.setImage(imgs[9]);
-        			else if (name.equals("Goldman Sachs"))
+        			else if (name.equals("     " + "Goldman Sachs"))
         				viewer.setImage(imgs[10]);
-        			else if (name.equals("Home Depot"))
+        			else if (name.equals("     " + "Home Depot"))
         				viewer.setImage(imgs[11]);
-        			else if (name.equals("IBM"))
+        			else if (name.equals("     " + "IBM"))
         				viewer.setImage(imgs[12]);
-        			else if (name.equals("Intel"))
+        			else if (name.equals("     " + "Intel"))
         				viewer.setImage(imgs[13]);
-        			else if (name.equals("Johnson & Johnson"))
+        			else if (name.equals("     " + "Johnson & Johnson"))
         				viewer.setImage(imgs[14]);
-        			else if (name.equals("JPMorgan Chase"))
+        			else if (name.equals("     " + "JPMorgan Chase"))
         				viewer.setImage(imgs[15]);
-        			else if (name.equals("McDonald's"))
+        			else if (name.equals("     " + "McDonald's"))
         				viewer.setImage(imgs[16]);
-        			else if (name.equals("3M Company"))
+        			else if (name.equals("     " + "3M Company"))
         				viewer.setImage(imgs[17]);
-        			else if (name.equals("Merck"))
+        			else if (name.equals("     " + "Merck"))
         				viewer.setImage(imgs[18]);
-        			else if (name.equals("Microsoft"))
+        			else if (name.equals("     " + "Microsoft"))
         				viewer.setImage(imgs[19]);
-        			else if (name.equals("Nike"))
+        			else if (name.equals("     " + "Nike"))
         				viewer.setImage(imgs[20]);
-        			else if (name.equals("Pfizer"))
+        			else if (name.equals("     " + "Pfizer"))
         				viewer.setImage(imgs[21]);
-        			else if (name.equals("Procter & Gamble"))
+        			else if (name.equals("     " + "Procter & Gamble"))
         				viewer.setImage(imgs[22]);
-        			else if (name.equals("The Travelers"))
+        			else if (name.equals("     " + "The Travelers"))
         				viewer.setImage(imgs[23]);
-        			else if (name.equals("UnitedHealth"))
+        			else if (name.equals("     " + "UnitedHealth"))
         				viewer.setImage(imgs[24]);
-        			else if (name.equals("United Technologies"))
+        			else if (name.equals("     " + "United Technologies"))
         				viewer.setImage(imgs[25]);
-        			else if (name.equals("Visa"))
+        			else if (name.equals("     " + "Visa"))
         				viewer.setImage(imgs[26]);
-        			else if (name.equals("Verizon"))
+        			else if (name.equals("     " + "Verizon"))
         				viewer.setImage(imgs[27]);
-        			else if (name.equals("Wal-Mart"))
+        			else if (name.equals("     " + "Wal-Mart"))
         				viewer.setImage(imgs[28]);
-        			else if (name.equals("Walt Disney"))
+        			else if (name.equals("     " + "Walt Disney"))
         				viewer.setImage(imgs[29]);
         			
         			setText(name);
@@ -444,11 +481,14 @@ public class Display extends Application {
         	}
         });
         
-        //	set preferred dimensions for list
-        stockList.setPrefWidth(220);
-        stockList.setPrefHeight(700);
+        //	set preferred dimensions for list (bind list view to be same size as parent container)
+        left.setPrefWidth(250);
+        left.setPrefHeight(700);
+        stockList.prefHeightProperty().bind(left.heightProperty());
+        stockList.prefWidthProperty().bind(left.widthProperty());
         	
         //	add elements to VBox
+        left.getChildren().add(welcome);
         left.getChildren().add(stockLabel);
         left.getChildren().add(stockList);
         	
@@ -538,36 +578,52 @@ public class Display extends Application {
         
         // 	create layout for right side of border pane
         VBox right = new VBox();
-        //right.setAlignment(Pos.TOP_CENTER);
+        right.setAlignment(Pos.CENTER);
         
         right.getStyleClass().add("right-style");
         
         //	format vbox
-        right.setPadding(new Insets(50, 50, 50, 50));
-        right.setSpacing(20);
+        right.setPadding(new Insets(15, 10, 25, 10));
+        right.setSpacing(15);
+        right.setPrefWidth(250);
         
         //	create labels
         Label rightTitle = new Label("Graph Controls");
+        rightTitle.prefWidthProperty().bind(right.widthProperty());
+        rightTitle.setAlignment(Pos.TOP_CENTER);
+        rightTitle.setStyle("-fx-font-size: 1.25em; -fx-text-fill: #ffffff;");
+        
         Label timeSpanTitle = new Label("Time Spans");
+        timeSpanTitle.prefWidthProperty().bind(right.widthProperty());
+        timeSpanTitle.setAlignment(Pos.TOP_CENTER);
+        timeSpanTitle.setStyle("-fx-font-size: 1.05em; -fx-text-fill: #81d4fa;"); 
+        
         Label movingAverageTitle = new Label("Moving Averages");
+        movingAverageTitle.prefWidthProperty().bind(right.widthProperty());
+        movingAverageTitle.setAlignment(Pos.TOP_CENTER);
+        movingAverageTitle.setStyle("-fx-font-size: 1.05em; -fx-text-fill: #81d4fa;"); 
         
         //	create a toggle group so only one choice can be selected
         group = new ToggleGroup();
         
         //	create radio buttons for time span and set ID to number of years to display. All time is represented as 0. These strings will be parsed to integers at runtime
-        RadioButton oneYear = new RadioButton("1 year");
+        RadioButton oneYear = new RadioButton("   1 year");
         oneYear.setToggleGroup(group);
         oneYear.setId("1");
         oneYear.setSelected(true);
-        RadioButton twoYears = new RadioButton("2 years");
+        oneYear.prefWidthProperty().bind(right.widthProperty());
+        RadioButton twoYears = new RadioButton("   2 years");
         twoYears.setToggleGroup(group);
         twoYears.setId("2");
-        RadioButton fiveYears = new RadioButton("5 years");
+        twoYears.prefWidthProperty().bind(right.widthProperty());
+        RadioButton fiveYears = new RadioButton("   5 years");
         fiveYears.setToggleGroup(group);
         fiveYears.setId("5");
-        RadioButton allTime = new RadioButton("All-time");
+        fiveYears.prefWidthProperty().bind(right.widthProperty());
+        RadioButton allTime = new RadioButton("   All-time");
         allTime.setToggleGroup(group);
         allTime.setId("100");
+        allTime.prefWidthProperty().bind(right.widthProperty());
         
         //	listener for radio button selection
         group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
@@ -652,10 +708,10 @@ public class Display extends Application {
         });
         
         //	create check boxes for moving averages
-        twenty = new CheckBox("20 Day Moving Average");
-        fifty = new CheckBox("50 Day Moving Average");
-        oneHundred = new CheckBox("100 Day Moving Average");
-        twoHundred = new CheckBox("200 Day Moving Average");        
+        twenty = new CheckBox("  20 Day");
+        fifty = new CheckBox("   50 Day");
+        oneHundred = new CheckBox(" 100 Day");
+        twoHundred = new CheckBox(" 200 Day");      
         
         //	add listeners to each check box
         twenty.selectedProperty().addListener(new ChangeListener<Boolean>() {
@@ -818,21 +874,26 @@ public class Display extends Application {
         
         // 	create label for log
         Label log = new Label("Recently Viewed Stocks");
+        log.prefWidthProperty().bind(right.widthProperty());
+        log.setAlignment(Pos.TOP_CENTER);
+        log.setStyle("-fx-font-size: 1.05em; -fx-text-fill: #81d4fa;"); 
         right.getChildren().add(log);
         
         //	set default text in table
         table.setPlaceholder(new Label("No recently viewed stocks"));
+        table.prefWidthProperty().bind(right.widthProperty());
         
         //	create a table column
         TableColumn stockName = new TableColumn<>("Name");
         stockName.setResizable(false);
-        stockName.setPrefWidth(300);
+        stockName.prefWidthProperty().bind(table.widthProperty());
         
         //	add column to table
         table.getColumns().add(stockName);
         
         //	add table to VBox
         right.getChildren().add(table);
+        right.getStyleClass().add("right");
         
         //	enable data modification from YahooFinance Stock class
         stockName.setCellValueFactory(
@@ -843,18 +904,23 @@ public class Display extends Application {
         bp.setRight(right);
         
         //	add listener to help button
-        help.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        showHints.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
-        	public void handle(MouseEvent e) {        		
-        		//	run tutorial
-        		tutorial(stockList, show, oneYear, twenty, table);
+        	public void handle(ActionEvent a) {   
+        		if (show == null) {
+        			displayWarning("Not enough information", "To show help, select a stock then select 'Show Help'.");
+        		}
+        		else {
+        			//	display hints
+        			tutorial(menuBar, stockList, show, oneYear, twenty, table);
+        		}
         	}
         });
         
         //	add listener to reset button
-        reset.addEventHandler(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+        reset.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
-        	public void handle(MouseEvent e) {
+        	public void handle(ActionEvent a) {
         		//	stop panning and zooming for current chart
         		stopFunction();
         		
@@ -880,57 +946,24 @@ public class Display extends Application {
         Scene scene  = new Scene(bp, 1500,900);
         
         //	add custom font
-        Font.loadFont(Display.class.getResource("Montserrat-Regular.ttf").toExternalForm(), 20);
+        Font.loadFont("file:src/assets/Montserrat-Regular.ttf", 20);
         
         // 	add custom css to chart
-        scene.getStylesheets().add(getClass().getResource("graph.css").toExternalForm());
+        scene.getStylesheets().add("file:src/assets/graph.css");
        
         //	give the application an icon
-        stage.getIcons().add(new Image(Display.class.getResourceAsStream("graph-icon.png")));
+        stage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
         
         //	display the gui
         stage.setScene(scene);
         
+        //	allow window to be resized
         stage.setResizable(true);
+        
+        //	show window
         stage.show();
     }
 	
-	/**
-	 * Method that creates a new button while also adding it to a given button bar. Gives a drop shadow effect as well
-	 * @param b Buttonbar where the button will be added
-	 * @param buttonLabel Text to be displayed inside button
-	 * @param data Buttonbar data
-	 * @return A new button
-	 */
-	private Button createAndAddButton(ButtonBar b, String buttonLabel, ButtonData data) {
-		//	create help button
-		Button temp = new Button(buttonLabel);
-		
-		//	set button bar data
-        ButtonBar.setButtonData(temp, data);
-        
-        //	add shadow effect to button on mouse enter
-        DropShadow shadow = new DropShadow();
-        temp.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
-        	@Override
-        	public void handle(MouseEvent e) {
-        		temp.setEffect(shadow);
-        	}
-        });
-        //	remove shadow effect on mouse leave
-        temp.addEventHandler(MouseEvent.MOUSE_EXITED, 
-        	    new EventHandler<MouseEvent>() {
-        	        @Override public void handle(MouseEvent e) {
-        	            temp.setEffect(null);
-        	        }
-        	});
-        
-        //	add help button to bar
-        b.getButtons().add(temp);
-        
-        //	return button
-        return temp;
-	}
 	
 	/**
 	 * Create a blank chart as a place holder while awaiting for user's selection
@@ -955,6 +988,7 @@ public class Display extends Application {
         return ac;		
 	}
 	
+	
 	/**
 	 * Create a a new linechart that displays the title of the selected stock
 	 * @param stockName Name of selected stock
@@ -975,7 +1009,7 @@ public class Display extends Application {
         if (timeSpan == 1)
         	tick = 15;
         else if (timeSpan == 2)
-        	tick = 10;
+        	tick = 20;
         else if (timeSpan == 5)
         	tick = 20;
         else
@@ -1006,6 +1040,7 @@ public class Display extends Application {
         return ac;		
 	}
 	
+	
 	/**
 	 * Adds data to graph by retrieving information from the Yahoo Finance API
 	 * @param prices Array containing closing prices to be added to graph
@@ -1030,6 +1065,7 @@ public class Display extends Application {
         aLine.setAnimated(false);
 	}	
 	
+	
 	/**
 	 * Displays exception if connection error
 	 */
@@ -1042,6 +1078,7 @@ public class Display extends Application {
 		exception.showAndWait();
 	}
 	
+	
 	/**
 	 * Displays warning if a stock isn't selected while making choices
 	 * @param warningTitle Title of the notification
@@ -1051,6 +1088,7 @@ public class Display extends Application {
 		//	create new warning
 		Notifications.create().position(Pos.TOP_CENTER).title(warningTitle).text(warningMessage).darkStyle().showWarning();
 	}
+	
 	
 	/**
 	 * Displays error if an error occurs (ex: Selected MA exceeds number of data points
@@ -1063,6 +1101,7 @@ public class Display extends Application {
 		Notifications.create().position(Pos.TOP_CENTER).title(errorTitle).text(errorMessage).darkStyle().showError();
 	}
 	*/
+	
 	
 	/**
 	 * Adds moving averages to graph
@@ -1091,6 +1130,7 @@ public class Display extends Application {
 			}
 		}
 	}
+	
 	
 	/**
 	 * Adds values to series
@@ -1124,6 +1164,7 @@ public class Display extends Application {
 		chart.setAnimated(false);
 	}
 	
+	
 	/**
 	 * Create images for stocks
 	 * @return Array of images
@@ -1140,6 +1181,7 @@ public class Display extends Application {
 		
 		return imgs;
 	}
+	
 	
 	/**
 	 * Displays popup for stock list help
@@ -1158,14 +1200,16 @@ public class Display extends Application {
 		stockOver.show(list);
 	}
 	
+	
 	/**
 	 * Displays popup for graph help
 	 */
 	private void displayGraphTutorial(AreaChart<Number, Number> chart) {
 		if (graphOver == null) {
 			graphOver = new PopOver();
-			graphOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
-			graphOver.setContentNode(new Label("The daily closings prices will be displayed here \nonce a stock is selected."));
+			graphOver.setArrowLocation(ArrowLocation.TOP_CENTER);
+			graphOver.setContentNode(new Label("The daily closings prices will be displayed here \nonce a stock is selected.\nUse the mouse wheel to zoom. "
+					+ "Hold down Right click \nand move the mouse to pan. The view can be reset at any time\nby selecting 'reset' from the 'Chart' tab"));
 			graphOver.setAutoFix(true);
 			graphOver.setAutoHide(true);
 			graphOver.setHideOnEscape(true);
@@ -1174,6 +1218,7 @@ public class Display extends Application {
 		graphOver.show(chart);
 	}
 
+	
 	/**
 	 * Displays popup for radio button help
 	 */
@@ -1190,6 +1235,7 @@ public class Display extends Application {
 		radioOver.show(r);
 	}
 
+	
 	/**
 	 * Displays popup for ma checkboxes
 	 */
@@ -1205,6 +1251,7 @@ public class Display extends Application {
 		}
 		checkOver.show(cb);
 	}
+	
 	
 	/**
 	 * Displays popup for log
@@ -1223,16 +1270,37 @@ public class Display extends Application {
 		logOver.show(t);
 	}
 
+	
 	/**
-	 * Runs an interactive tutorial for the user anytime 'help' is clicked
+	 * Display popup for menu bar
 	 */
-	private void tutorial(ListView<?> list, AreaChart<Number, Number> chart, RadioButton r, CheckBox cb, TableView t) {
+	private void displayMenuBarTutorial(MenuBar mb) {
+		if (menuOver == null) {
+			menuOver = new PopOver();
+			menuOver.setArrowLocation(ArrowLocation.TOP_CENTER);
+			menuOver.setContentNode(new Label("Controls for logging out, exiting, accessing settings, finding help\n and adjusting the chart can be found in these menus"));
+			menuOver.setAutoFix(true);
+			menuOver.setAutoHide(true);
+			menuOver.setHideOnEscape(true);
+			menuOver.setDetachable(false);
+		}
+		
+		menuOver.show(mb);
+	}
+	
+	
+	/**
+	 * Displays helper messages to user
+	 */
+	private void tutorial(MenuBar mb, ListView<?> list, AreaChart<Number, Number> chart, RadioButton r, CheckBox cb, TableView t) {
+		displayMenuBarTutorial(mb);
 		displayStockTutorial(list);
 		displayGraphTutorial(chart);
 		displayTimeSpanTutorial(r);
 		displayMATutorial(cb);
 		displayLogTutorial(t);
 	}
+	
 	
 	/**
 	 * Adds zooming and panning functionality to the given chart
@@ -1260,8 +1328,9 @@ public class Display extends Application {
           zoomManager.start(); 
 	}
 	
+	
 	/**
-	 * Removes zooming and panning function from chart by invoking manager's stop method.
+	 * Removes zooming and panning functionality from chart by invoking managers' stop method.
 	 * Used when updating graphs
 	 */
 	private void stopFunction() {
@@ -1270,6 +1339,7 @@ public class Display extends Application {
 			zoomManager.stop();
 		}
 	}
+	
 	
 	/**
 	 * Check for duplicates in an observable list and removes them to only show one instance
@@ -1295,6 +1365,7 @@ public class Display extends Application {
 		}
 		t.setItems(list);
 	}
+	
 	
 	/**
 	 * Gets additional closing prices in order to calculate a full moving average. 
@@ -1344,6 +1415,7 @@ public class Display extends Application {
 		//	return array of data
 		return temp;	
 	}
+	
 	
 	/**
 	 * Main that runs the entire project and displays the graph

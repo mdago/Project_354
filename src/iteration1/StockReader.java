@@ -90,6 +90,8 @@ public class StockReader {
 	 */
 	private static void reader(BufferedReader reader) throws IOException {
 		stocks = new Stock[fileSize(file)];	//	create array of stocks
+		stockClosingPrices = new double[fileSize(file)];
+		adjustedClosingPrices = new double[fileSize(file)];
 		String line = null;	//	track each line in file
 		String str = ",";	//	establish delimiter for file as comma. The file sampledata.csv has extension 'csv' which stands for comma separated file therefore each cell is techincally separated by a ','
 		int counter = 0;	//	count each line
