@@ -1,4 +1,8 @@
 # Project 354
+Update 6 April 2017
+-added basic login functionality
+-added user registration
+-log out now brings you to the login screen
 
 Update 5 April 2017  
 -bug fixes  
@@ -44,9 +48,9 @@ This read me will contain a list of things currently that need to fixed or added
 At this moment, some tasks that are required:
   1) Code cleanup (should be done either at end of implementation or during editing)
   2) Log In (requires a log-in that reads from a user database file to determine correct log in credentials. Also requires an
-     option to create a new user
+     option to create a new user || Done
   3) Log Out (likely will be initiated by clicking a log out button on the main gui in which case the user is brought back to the
-     log in page
+     log in page || Done
   4) Title page?? (everyone should vote on this)
   5) Buy/Sell signals on crossing of moving average and stock prices
   6) Settings page to change password? The interview answers posted by the teacher mentions user AND password management
