@@ -110,7 +110,7 @@ public class DateObject {
 			monthString = "October";
 			break;
 		case 10:
-			monthString = "Novemeber";
+			monthString = "November";
 			break;
 		case 11:
 			monthString = "December";

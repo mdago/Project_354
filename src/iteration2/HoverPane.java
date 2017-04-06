@@ -9,7 +9,7 @@ import javafx.scene.paint.Color;
 
 class HoverPane extends StackPane {
     HoverPane(DateObject d, double y) {
-      setPrefSize(2,2);
+      setPrefSize(6,6);
 
       final Label label = createDataThresholdLabel(d, y);
 
@@ -29,11 +29,11 @@ class HoverPane extends StackPane {
 
     private Label createDataThresholdLabel(DateObject d, double price) {
       final Label label = new Label(d.toString() + "\nClosing Price: $" + price);
-      label.getStyleClass().addAll("default-color0", "chart-line-symbol", "chart-series-line");
+      label.getStyleClass().addAll("#ffffff", "chart-line-symbol", "chart-series-line");
       label.setStyle("-fx-font-size: 13;");
 
       label.toFront();
-      label.setTextFill(Color.BLUE);
+      label.setTextFill(Color.CORNFLOWERBLUE);
 
       label.setMinSize(Label.USE_PREF_SIZE, Label.USE_PREF_SIZE);
       return label;
