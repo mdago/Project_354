@@ -1,5 +1,8 @@
 package iteration2;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -49,9 +52,13 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 import org.controlsfx.control.Notifications;
 import org.controlsfx.control.PopOver;
@@ -71,6 +78,11 @@ import yahoofinance.histquotes.Interval;
  * @version 2.0
  */
 public class Display extends Application {	
+	/**
+	 * Label that will hold live time
+	 */
+	Label date = new Label();
+	
 	/**
 	 * Calculator to calculate moving averages
 	 */
@@ -259,11 +271,12 @@ public class Display extends Application {
 	 */
 	private ChartZoomManager zoomManager;
 	
+	/**
+	 * Stocky's main window with stock information and graphing
+	 */
 	private void openMainWindow(Stage stage){
 		// set title of window
         stage.setTitle("Stocky");
-        
-        //stage.initStyle(StageStyle.UNDECORATED);
         
         //	create layout of window
         bp = new BorderPane();
@@ -290,8 +303,7 @@ public class Display extends Application {
         //	exit to login screen on click
         logout.setOnAction(new EventHandler<ActionEvent>() {
         	public void handle(ActionEvent t) {
-        		recents.clear();
-        		openLoginWindow(stage, "Logged out Succesfully");
+        		openLoginWindow(stage);
         	}
         });
         
@@ -361,8 +373,29 @@ public class Display extends Application {
         	}
         });
         
+        MenuItem about = new MenuItem("_About  ");
+        about.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
+        
+        //	add handler
+        about.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent a) {
+        		Alert abt = new Alert(AlertType.INFORMATION);
+        		abt.setTitle("About Stocky");
+        		abt.setHeaderText("2017 Copyright Stocky All Rights Reserved");
+        		abt.setContentText("- Programmers, Designers and Creators: \nStephen Prizio, Marco Dagostino, Ming Tsai, Maximilien Le Clei, Chris McArthur, Himmet Arican, Athanasios Babouras\n\n"
+        				+ "- ControlsFX: Jonathan Giles 2017 \nhttp://fxexperience.com/\n\n"
+        				+ "- JavaFX Utilities: Gillius \nhttps://github.com/gillius/jfxutils/ under Apache License\n\n"
+        				+ "- Yahoo Finance API: Stijn Strickx \nhttp://financequotes-api.com/ under MIT License");
+        		
+        		Stage s = (Stage) abt.getDialogPane().getScene().getWindow();
+        		s.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+        		
+        		abt.showAndWait();
+        	}
+        });        
+        
         //	add items to help tab
-        help.getItems().addAll(showHints, controls);
+        help.getItems().addAll(showHints, controls, about);
         
         //	add menu tabs to menu bar
         menuBar.getMenus().addAll(file, chart, help);
@@ -374,6 +407,9 @@ public class Display extends Application {
         
         //	create layout for left side of border pane
         VBox left = new VBox();
+        
+        //	ensure that the table is empty
+        table.getItems().clear();
         
         //	add custom css class for left side
         left.getStyleClass().add("left-style");
@@ -596,7 +632,17 @@ public class Display extends Application {
         right.setSpacing(15);
         right.setPrefWidth(250);
         
-        //	create labels
+        //	date label
+        DateFormat dateFormat = new SimpleDateFormat("EEE, d MMM yyyy z");
+        Date d = new Date();
+        Label da = new Label(dateFormat.format(d));
+        da.setStyle("-fx-font-size: 0.95em; -fx-text-fill: #ff5722;");
+        
+        //	show live time
+        time();
+        date.setStyle("-fx-font-size: 0.95em; -fx-text-fill: #ff5722;");
+        
+        //	create controls labels
         Label rightTitle = new Label("Graph Controls");
         rightTitle.prefWidthProperty().bind(right.widthProperty());
         rightTitle.setAlignment(Pos.TOP_CENTER);
@@ -861,6 +907,10 @@ public class Display extends Application {
         });
         
         //	add label
+        right.getChildren().add(da);
+        right.getChildren().add(date);
+        
+        //	add label
         right.getChildren().add(rightTitle);
         
         //	add label
@@ -958,10 +1008,10 @@ public class Display extends Application {
         Font.loadFont("file:src/assets/Montserrat-Regular.ttf", 20);
         
         // 	add custom css to chart
-        scene.getStylesheets().add("/assets/graph.css");
+        scene.getStylesheets().add("file:src/assets/graph.css");
        
         //	give the application an icon
-        stage.getIcons().add(new Image("/imgs/graph-icon.png"));
+        stage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
         
         //	display the gui
         stage.setScene(scene);
@@ -972,12 +1022,12 @@ public class Display extends Application {
         //	show window
         stage.show();
 	}
+	
 	/**
 	 * Method which opens the login window
-	 * @param stage
 	 */
-	private void openLoginWindow(Stage stage, String message){
-		stage.setTitle("Stock Program");
+	private void openLoginWindow(Stage stage){
+		stage.setTitle("Stocky");
 
         //	create layout of window
         GridPane grid = new GridPane();
@@ -1004,12 +1054,12 @@ public class Display extends Application {
         final TextField usernameTextField = new TextField();
         final Label passwordLabel = new Label("Password:");
         final PasswordField passwordTextField = new PasswordField();
-        final Label messageLabel = new Label(message);
+        final Label errorLabel = new Label();
         
         //  add everything to grid
         hbButtons.getChildren().addAll(submitButton, clearButton, registerButton);
         
-        Image graphImage = new Image("/imgs/graph-icon.png");
+        Image graphImage = new Image("file:src/imgs/graph-icon.png");
         ImageView pic = new ImageView();
         pic.setImage(graphImage);
         
@@ -1021,7 +1071,7 @@ public class Display extends Application {
         grid.add(passwordLabel, 0, 2);
         grid.add(passwordTextField, 1, 2);
         grid.add(hbButtons, 0, 3, 2, 1);
-        grid.add(messageLabel, 0, 4, 2, 1);
+        grid.add(errorLabel, 0, 4, 2, 1);
         
         //  handler which checks if login info is correct
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -1033,8 +1083,8 @@ public class Display extends Application {
         					openMainWindow(stage);
         				else{
         					passwordTextField.clear();
-        					messageLabel.setText("Login info not correct.");
-        					messageLabel.setTextFill(Color.rgb(210, 50, 35));
+                			errorLabel.setText("Login info not correct.");
+                			errorLabel.setTextFill(Color.rgb(210, 50, 35));
         				}
         			}
         			catch(IOException ioe){
@@ -1043,8 +1093,8 @@ public class Display extends Application {
         		}
         		else{
         			passwordTextField.clear();
-        			messageLabel.setText("Username or password is empty.");
-        			messageLabel.setTextFill(Color.rgb(210, 50, 35));
+        			errorLabel.setText("Username or password is empty.");
+        			errorLabel.setTextFill(Color.rgb(210, 50, 35));
         		}
         	}
         	
@@ -1056,7 +1106,7 @@ public class Display extends Application {
         	public void handle(ActionEvent e){
         		usernameTextField.clear();
         		passwordTextField.clear();
-        		messageLabel.setText(null);
+        		errorLabel.setText(null);
         	}
         });
         
@@ -1070,7 +1120,7 @@ public class Display extends Application {
         
         Scene scene  = new Scene(grid, 1500, 900);
         
-        stage.getIcons().add(new Image("/imgs/graph-icon.png"));
+        stage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
         
         stage.setScene(scene);
         stage.setResizable(true);
@@ -1083,7 +1133,7 @@ public class Display extends Application {
 	public void openRegisterWindow(){
 		Stage registerStage = new Stage();
 		registerStage.setTitle("Registation");
-		registerStage.getIcons().add(new Image("/imgs/graph-icon.png"));
+		registerStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
 		
 		GridPane registerGrid = new GridPane();
 		registerGrid.setAlignment(Pos.CENTER);
@@ -1103,7 +1153,7 @@ public class Display extends Application {
         final PasswordField passwordTextField = new PasswordField();
         final Label confirmPassLabel = new Label("Confirm Password:");
         final PasswordField confirmPassTextField = new PasswordField();
-        final Label messageLabel = new Label();
+        final Label errorLabel = new Label();
         
         hbButtons.getChildren().addAll(submitButton, clearButton);
         
@@ -1114,12 +1164,12 @@ public class Display extends Application {
         registerGrid.add(confirmPassLabel, 0, 2);
         registerGrid.add(confirmPassTextField, 1, 2);
         registerGrid.add(hbButtons, 0, 3, 2, 1);
-        registerGrid.add(messageLabel, 0, 4, 2, 1);
+        registerGrid.add(errorLabel, 0, 4, 2, 1);
         
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
         	public void handle(ActionEvent e){
-        		messageLabel.setText("");
+        		errorLabel.setText("");
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty() && 
         				passwordTextField.getText().equals(confirmPassTextField.getText())){
         			LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
@@ -1128,8 +1178,8 @@ public class Display extends Application {
         		else{
         			passwordTextField.clear();
         			confirmPassTextField.clear();
-        			messageLabel.setText("There was an issue with registering.");
-        			messageLabel.setTextFill(Color.rgb(210, 50, 35));
+        			errorLabel.setText("There was an issue with registering.");
+        			errorLabel.setTextFill(Color.rgb(210, 50, 35));
         		}
         	}
         	
@@ -1141,7 +1191,7 @@ public class Display extends Application {
         		usernameTextField.clear();
         		passwordTextField.clear();
         		confirmPassTextField.clear();
-        		messageLabel.setText(null);
+        		errorLabel.setText(null);
         	}
         });
         
@@ -1165,9 +1215,8 @@ public class Display extends Application {
 				Platform.exit();
 			}
 		});
-        openLoginWindow(stage, "");
+        openLoginWindow(stage);
     }
-	
 	
 	/**
 	 * Create a blank chart as a place holder while awaiting for user's selection
@@ -1191,7 +1240,6 @@ public class Display extends Application {
         
         return ac;		
 	}
-	
 	
 	/**
 	 * Create a a new linechart that displays the title of the selected stock
@@ -1232,7 +1280,7 @@ public class Display extends Application {
         y.setLabel("Daily Closing Price ($)");
                 
         //	give chart a title
-        ac.setTitle(stockName + " Stock History");
+        ac.setTitle(stockName + " Stock Prices");
         
         //	disallow animations
         ac.setAnimated(false);  
@@ -1243,7 +1291,6 @@ public class Display extends Application {
         //	return chart
         return ac;		
 	}
-	
 	
 	/**
 	 * Adds data to graph by retrieving information from the Yahoo Finance API
@@ -1269,7 +1316,6 @@ public class Display extends Application {
         aLine.setAnimated(false);
 	}	
 	
-	
 	/**
 	 * Displays exception if connection error
 	 */
@@ -1282,7 +1328,6 @@ public class Display extends Application {
 		exception.showAndWait();
 	}
 	
-	
 	/**
 	 * Displays warning if a stock isn't selected while making choices
 	 * @param warningTitle Title of the notification
@@ -1292,7 +1337,6 @@ public class Display extends Application {
 		//	create new warning
 		Notifications.create().position(Pos.TOP_CENTER).title(warningTitle).text(warningMessage).darkStyle().showWarning();
 	}
-	
 	
 	/**
 	 * Displays error if an error occurs (ex: Selected MA exceeds number of data points
@@ -1305,7 +1349,6 @@ public class Display extends Application {
 		Notifications.create().position(Pos.TOP_CENTER).title(errorTitle).text(errorMessage).darkStyle().showError();
 	}
 	*/
-	
 	
 	/**
 	 * Adds moving averages to graph
@@ -1334,7 +1377,6 @@ public class Display extends Application {
 			}
 		}
 	}
-	
 	
 	/**
 	 * Adds values to series
@@ -1368,7 +1410,6 @@ public class Display extends Application {
 		chart.setAnimated(false);
 	}
 	
-	
 	/**
 	 * Create images for stocks
 	 * @return Array of images
@@ -1385,7 +1426,6 @@ public class Display extends Application {
 		
 		return imgs;
 	}
-	
 	
 	/**
 	 * Displays popup for stock list help
@@ -1404,7 +1444,6 @@ public class Display extends Application {
 		stockOver.show(list);
 	}
 	
-	
 	/**
 	 * Displays popup for graph help
 	 */
@@ -1422,7 +1461,6 @@ public class Display extends Application {
 		graphOver.show(chart);
 	}
 
-	
 	/**
 	 * Displays popup for radio button help
 	 */
@@ -1439,7 +1477,6 @@ public class Display extends Application {
 		radioOver.show(r);
 	}
 
-	
 	/**
 	 * Displays popup for ma checkboxes
 	 */
@@ -1455,7 +1492,6 @@ public class Display extends Application {
 		}
 		checkOver.show(cb);
 	}
-	
 	
 	/**
 	 * Displays popup for log
@@ -1474,7 +1510,6 @@ public class Display extends Application {
 		logOver.show(t);
 	}
 
-	
 	/**
 	 * Display popup for menu bar
 	 */
@@ -1492,7 +1527,6 @@ public class Display extends Application {
 		menuOver.show(mb);
 	}
 	
-	
 	/**
 	 * Displays helper messages to user
 	 */
@@ -1504,7 +1538,6 @@ public class Display extends Application {
 		displayMATutorial(cb);
 		displayLogTutorial(t);
 	}
-	
 	
 	/**
 	 * Adds zooming and panning functionality to the given chart
@@ -1532,7 +1565,6 @@ public class Display extends Application {
           zoomManager.start(); 
 	}
 	
-	
 	/**
 	 * Removes zooming and panning functionality from chart by invoking managers' stop method.
 	 * Used when updating graphs
@@ -1543,7 +1575,6 @@ public class Display extends Application {
 			zoomManager.stop();
 		}
 	}
-	
 	
 	/**
 	 * Check for duplicates in an observable list and removes them to only show one instance
@@ -1569,7 +1600,6 @@ public class Display extends Application {
 		}
 		t.setItems(list);
 	}
-	
 	
 	/**
 	 * Gets additional closing prices in order to calculate a full moving average. 
@@ -1620,6 +1650,26 @@ public class Display extends Application {
 		return temp;	
 	}
 	
+	/**
+	 * Displays live time using JavaFX timeline. Help from Blindworks && Community 
+	 * http://stackoverflow.com/questions/13227809/displaying-changing-values-in-javafx-label
+	 */
+	private void time() {
+		Timeline timeline = new Timeline(
+			    new KeyFrame(Duration.seconds(0),
+			      new EventHandler<ActionEvent>() {
+			        @Override public void handle(ActionEvent actionEvent) {
+			          Calendar time = Calendar.getInstance();
+			          SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
+			          date.setText(simpleDateFormat.format(time.getTime()));
+			        }
+			      }
+			    ),
+			    new KeyFrame(Duration.seconds(1))
+			  );
+			  timeline.setCycleCount(Animation.INDEFINITE);
+			  timeline.play();
+	}
 	
 	/**
 	 * Main that runs the entire project and displays the graph

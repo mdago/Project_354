@@ -35,7 +35,7 @@ public class LoginManager {
 		//  the BufferedReader class is used to go through each line.
 		BufferedReader reader = null;
 		try{
-			reader = new BufferedReader(new FileReader("UserDatabase.txt"));
+			reader = new BufferedReader(new FileReader("src/assets/UserDatabase.txt"));
 			String line = reader.readLine();
 			
 			while(line != null){
@@ -55,10 +55,9 @@ public class LoginManager {
 		}
 		return false;
 	}
+	
 	/**
 	 * Saves the user information into a file contained in the project
-	 * @param username
-	 * @param password
 	 * @return a string showing if the registration was successful
 	 */
 	public static String register(String username, String password){
@@ -66,7 +65,7 @@ public class LoginManager {
 		String hashedPassword = generateHash(saltedPassword);
 		
 		try{
-			BufferedWriter writer = new BufferedWriter(new FileWriter("UserDatabase.txt", true));
+			BufferedWriter writer = new BufferedWriter(new FileWriter("src/assets/UserDatabase.txt", true));
 			writer.write(username + hashedPassword + "\n");
 			writer.newLine();
 			writer.close();
@@ -76,9 +75,9 @@ public class LoginManager {
 		}
 		return "";
 	}
+	
 	/**
 	 * The method used to hash the password
-	 * @param input
 	 * @return a hashed string using the algorithm included
 	 */
 	public static String generateHash(String input){
@@ -104,4 +103,10 @@ public class LoginManager {
 		
 		return hash.toString();
 	}
+
+	/**
+	 * ACCESSORS AND MUTATORS FOR CUSTOMIZATION
+	 */
+	
+	//	....	
 }
