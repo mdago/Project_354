@@ -1,8 +1,10 @@
 # Project 354
-Update 6 April 2017  
+Update of Update 6 April 2017  
 -added basic login functionality  
 -added user registration  
 -log out now brings you to the login screen  
+-added live time in top right corner  
+-finished UI overhaul  
 
 Update 5 April 2017  
 -bug fixes  
