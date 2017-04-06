@@ -59,6 +59,6 @@ These are some task currently requiring working. This list may be lengthened or 
 If anyone has any comments, modifications, additions or whatever then feel free to add it here so everyone can see and offer 
 their opinions.
 
-A screenshot of the current state (31 March 2017) of the program will be provided for reference in the repo.
+A screenshot of the current state (6 April 2017) of the program will be provided for reference in the repo.
 
 Happy Coding!
