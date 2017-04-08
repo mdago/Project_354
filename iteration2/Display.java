@@ -1,6 +1,7 @@
 package iteration2;
 
 import javafx.animation.Animation;
+import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -11,8 +12,10 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.NumberAxis;
@@ -50,13 +53,17 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -78,7 +85,7 @@ import yahoofinance.histquotes.Interval;
  * @version 2.0
  */
 public class Display extends Application {	
-	/**
+	/*
 	 * Label that will hold live time
 	 */
 	Label date = new Label();
@@ -330,11 +337,11 @@ public class Display extends Application {
         		if (show != null) {
         			zoomManager.stop();
         			panner.stop();
-        			show = null;
-        			bp.setCenter(createChart());
         			stockList.getSelectionModel().select(-1);
         			group.getToggles().get(0).setSelected(true);
         			table.getItems().clear();
+        			show = null;
+        			bp.setCenter(createChart());
         		}
         	}
         });
@@ -373,7 +380,7 @@ public class Display extends Application {
         	}
         });
         
-        MenuItem about = new MenuItem("_About  ");
+        MenuItem about = new MenuItem("_About Stocky  ");
         about.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
         
         //	add handler
@@ -548,7 +555,7 @@ public class Display extends Application {
         //	this will create and display a new chart each time new stock is selected
         stockList.setOnMouseClicked(new EventHandler<MouseEvent>() {
         	@Override
-            public void handle(MouseEvent arg0) {
+            public void handle(MouseEvent arg0) {        		
         		//	reset all check boxes
     			twenty.setSelected(false);
     			fifty.setSelected(false);
@@ -980,29 +987,41 @@ public class Display extends Application {
         reset.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
         	public void handle(ActionEvent a) {
-        		//	stop panning and zooming for current chart
-        		stopFunction();
+        		if (show != null) {
+        			//	stop panning and zooming for current chart
+        			stopFunction();
         		
-        		//	recreate chart at particular instance
-        		show = createChart(names[stockIndex], closings, timeSpan);
-				addDataToGraph(closings, show);
+        			//	recreate chart at particular instance
+        			show = createChart(names[stockIndex], closings, timeSpan);
+        			addDataToGraph(closings, show);
 				
-				//	uncheck check boxes
-				twenty.setSelected(false);
-				fifty.setSelected(false);
-				oneHundred.setSelected(false);
-				twoHundred.setSelected(false);
+        			//	uncheck check boxes
+        			twenty.setSelected(false);
+        			fifty.setSelected(false);
+        			oneHundred.setSelected(false);
+        			twoHundred.setSelected(false);
         		
-				//	display recreated chart
-        		bp.setCenter(show);
+        			//	display recreated chart
+        			bp.setCenter(show);
+        		}
         	}
         });
         
         //	add custom css to borderpane
         bp.getStyleClass().add("bp");
+            
+        //	fade animation on window start
+        FadeTransition t = new FadeTransition(Duration.millis(1250), bp);
+        t.setFromValue(0.6);
+        t.setToValue(1);
+        //	start fade
+        t.play();
         
         // 	add scene to window and give the window a default size
-        Scene scene  = new Scene(bp, 1500,900);
+        //Scene scene  = new Scene(bp, 1500,900);
+        Rectangle2D screenSize = Screen.getPrimary().getVisualBounds();
+        
+        Scene scene  = new Scene(bp, screenSize.getWidth(), screenSize.getHeight());
         
         //	add custom font
         Font.loadFont("file:src/assets/Montserrat-Regular.ttf", 20);
@@ -1012,6 +1031,9 @@ public class Display extends Application {
        
         //	give the application an icon
         stage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+        
+        //	maximize window
+        stage.setMaximized(true);
         
         //	display the gui
         stage.setScene(scene);
@@ -1027,6 +1049,7 @@ public class Display extends Application {
 	 * Method which opens the login window
 	 */
 	private void openLoginWindow(Stage stage){
+		//	title window
 		stage.setTitle("Stocky");
 
         //	create layout of window
@@ -1034,20 +1057,23 @@ public class Display extends Application {
         
         //  set grid layout
         grid.setAlignment(Pos.CENTER);
-        grid.setPadding(new Insets(10, 10, 10, 10));
-        grid.setVgap(5);
+        grid.setPadding(new Insets(20, 20, 20, 20));
+        grid.setVgap(15);
         grid.setHgap(10);
         
         //  create button container
         HBox hbButtons = new HBox();
+        hbButtons.setPadding(new Insets(15, 12, 15, 12));
+        hbButtons.setSpacing(20);
+        
         hbButtons.setAlignment(Pos.BASELINE_CENTER);
         VBox imgContainer = new VBox();
         
         imgContainer.setAlignment(Pos.TOP_CENTER);
         
-        Button submitButton = new Button("Submit");
-        Button clearButton = new Button("Clear");
-        Button registerButton = new Button("Register");
+        Button submitButton = new Button("Log In");
+        Button clearButton = new Button("Start Over");
+        Button registerButton = new Button("New User");
         
         //  create username and password labels and text fields
         final Label usernameLabel = new Label("Username:");
@@ -1065,13 +1091,21 @@ public class Display extends Application {
         
         imgContainer.getChildren().add(pic);
         
-        grid.add(imgContainer, 0, 0, 2, 1);
-        grid.add(usernameLabel, 0, 1);
-        grid.add(usernameTextField, 1, 1);
-        grid.add(passwordLabel, 0, 2);
-        grid.add(passwordTextField, 1, 2);
-        grid.add(hbButtons, 0, 3, 2, 1);
-        grid.add(errorLabel, 0, 4, 2, 1);
+        //	title label
+        Label title = new Label("Stocky");
+        title.setStyle("-fx-font-size: 3em; -fx-text-fill: #81d4fa;");
+      
+        //	horizontally center label
+        GridPane.setHalignment(title, HPos.CENTER);
+        
+        grid.add(title, 0, 0, 2, 1);
+        grid.add(imgContainer, 0, 2, 2, 1);
+        grid.add(usernameLabel, 0, 3);
+        grid.add(usernameTextField, 1, 3);
+        grid.add(passwordLabel, 0, 4);
+        grid.add(passwordTextField, 1, 4);
+        grid.add(hbButtons, 0, 5, 2, 1);
+        grid.add(errorLabel, 0, 6, 2, 1);
         
         //  handler which checks if login info is correct
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -1118,10 +1152,23 @@ public class Display extends Application {
         	}
         });
         
-        Scene scene  = new Scene(grid, 1500, 900);
+        //	custom transtion between windows
+        FadeTransition t = new FadeTransition(Duration.millis(1500), grid);
+        t.setFromValue(0.6);
+        t.setToValue(1);
+    
+        t.play();
+        
+        Rectangle2D screenSize = Screen.getPrimary().getVisualBounds();
+        
+        Scene scene  = new Scene(grid, screenSize.getWidth(), screenSize.getHeight());
+        
+        // 	add custom css to chart
+        scene.getStylesheets().add("file:src/assets/login.css");
         
         stage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
         
+        stage.setMaximized(true);
         stage.setScene(scene);
         stage.setResizable(true);
         stage.show();
@@ -1143,9 +1190,11 @@ public class Display extends Application {
 		
 		HBox hbButtons = new HBox();
         hbButtons.setAlignment(Pos.BASELINE_CENTER);
+        hbButtons.setPadding(new Insets(10, 10, 10, 10));
+        hbButtons.setSpacing(20);
         
         Button submitButton = new Button("Submit");
-        Button clearButton = new Button("Clear");
+        Button clearButton = new Button("Start Over");
         
         final Label usernameLabel = new Label("Username:");
         final TextField usernameTextField = new TextField();
@@ -1173,6 +1222,7 @@ public class Display extends Application {
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty() && 
         				passwordTextField.getText().equals(confirmPassTextField.getText())){
         			LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
+        			
         			registerStage.close();
         		}
         		else{
@@ -1196,6 +1246,7 @@ public class Display extends Application {
         });
         
         Scene registerScene  = new Scene(registerGrid, 460, 300);
+        registerScene.getStylesheets().add("file:src/assets/login.css");
         
         registerStage.setScene(registerScene);
         registerStage.setResizable(false);
@@ -1208,7 +1259,6 @@ public class Display extends Application {
 	 */
 	@Override
 	public void start(Stage stage) throws IOException {	
-		// set title of window
 		stage.setOnCloseRequest(new EventHandler<WindowEvent>(){
 			@Override
 			public void handle(WindowEvent e){
@@ -1339,18 +1389,6 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Displays error if an error occurs (ex: Selected MA exceeds number of data points
-	 * @param errorTitle Title of error notification
-	 * @param errorMessage Error message to be displayed
-	 */
-	/*
-	private void displayError(String errorTitle, String errorMessage) {
-		//	create error notification
-		Notifications.create().position(Pos.TOP_CENTER).title(errorTitle).text(errorMessage).darkStyle().showError();
-	}
-	*/
-	
-	/**
 	 * Adds moving averages to graph
 	 * @param averages Array of moving averages
 	 * @param chart Chart which will contain the data
@@ -1408,6 +1446,95 @@ public class Display extends Application {
 		
 		//	disallow animations
 		chart.setAnimated(false);
+	}
+	
+	/**
+	 * Checks and returns intersection points between 2 lines
+	 * @param s1 data series 1 (should be closing prices if closing prices are being used to check)
+	 * @param s2 data series 2
+	 * @param period period of moving average (if both series are moving averages, put the period as 1)
+	 * @return ArrayList of intersection points
+	 */
+	private ArrayList<Point2D> checkIntersection(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
+		//	array that will be returned
+		ArrayList<Point2D> points = new ArrayList<Point2D>();
+		
+		//	starting point for loop
+		int bound = 0;
+		
+		//	if the series are the same size, start at 1, else start at the period (special case of all time timespan)
+		if (s1.getData().size() <= s2.getData().size())
+			bound = 1;
+		else
+			bound = period;
+		
+		//	loop through entire data series
+		for (int i = bound; i < s1.getData().size(); ++i) {
+			//	if there's an intersection, calculate intersection point and add it to the array
+			if (Line2D.linesIntersect(s1.getData().get(i-1).getXValue().doubleValue(), s1.getData().get(i-1).getYValue().doubleValue(), 
+					s1.getData().get(i).getXValue().doubleValue(), s1.getData().get(i).getYValue().doubleValue(), 
+					s2.getData().get(i-1).getXValue().doubleValue(), s2.getData().get(i-1).getYValue().doubleValue(), 
+					s2.getData().get(i).getXValue().doubleValue(), s2.getData().get(i).getYValue().doubleValue())) 
+			{
+				points.add(getIntersectionPoint(s1.getData().get(i-1).getXValue().doubleValue(), s1.getData().get(i-1).getYValue().doubleValue(), 
+					s1.getData().get(i).getXValue().doubleValue(), s1.getData().get(i).getYValue().doubleValue(), 
+					s2.getData().get(i-1).getXValue().doubleValue(), s2.getData().get(i-1).getYValue().doubleValue(), 
+					s2.getData().get(i).getXValue().doubleValue(), s2.getData().get(i).getYValue().doubleValue()));
+			}
+		}
+		//	return array of points
+		return points;
+	}
+	
+	/**
+	 * Calculates the intersection point using the determinant method based on simplified Linear Algebraic matrices
+	 * @param x1 x-coordinate of the first point
+	 * @param y1 y-coordinate of the first point
+	 * @param x2 x-coordinate of the second point
+	 * @param y2 y-coordinate of the second point
+	 * @param x3 x-coordinate of the third point
+	 * @param y3 y-coordinate of the third point
+	 * @param x4 x-coordinate of the fourth point
+	 * @param y4 y-coordinate of the fourth point
+	 * @return The intersection point, x and y coordinates as a Point2D.Double
+	 */
+	private Point2D.Double getIntersectionPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
+		//	solved using determinants, based on inspiration from CommanderKeith and lbackstrom and references from 
+		//	https://www.topcoder.com/community/data-science/data-science-tutorials/geometry-concepts-line-intersection-and-its-applications/
+		
+		//	determinant for line 1
+	    double det1And2 = det(x1, y1, x2, y2);
+	    
+	    //	determinant for line 2
+	    double det3And4 = det(x3, y3, x4, y4);
+	    
+	    //	algebraic multiplications
+	    double x1X2 = x1 - x2;
+	    double y1Y2 = y1 - y2;
+	    double x3X4 = x3 - x4;
+	    double y3Y4 = y3 - y4;
+	    
+	    //	determinant of algebraic multiplications
+	    double det1Less2And3Less4 = det(x1X2, y1Y2, x3X4, y3Y4);
+	    
+	    //	using the above algebraic simplifications, the coordinate points can be solved
+	    double x = (det(det1And2, x1X2, det3And4, x3X4) / det1Less2And3Less4);
+	    double y = (det(det1And2, y1Y2, det3And4, y3Y4) / det1Less2And3Less4);
+	    
+	    //	return the point
+	    return new Point2D.Double(x, y);
+	}
+	
+	/**
+	 * Calculates determinant from the equivalent of a 2d matrix
+	 * @param a row 1, column 1
+	 * @param b row 1, column 2
+	 * @param c row 2, column 1
+	 * @param d row 2, column 2
+	 * @return determinant
+	 */
+	private static double det(double a, double b, double c, double d) {
+	      return a * d - b * c;
 	}
 	
 	/**

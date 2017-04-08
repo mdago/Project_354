@@ -9,7 +9,7 @@ import javafx.scene.paint.Color;
 
 class HoverPane extends StackPane {
     HoverPane(DateObject d, double y) {
-      setPrefSize(6,6);
+      setPrefSize(5,5);
 
       final Label label = createDataThresholdLabel(d, y);
 
