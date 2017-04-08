@@ -1,4 +1,9 @@
 # Project 354
+Update 8 April 2017  
+-added intersection calculator method  
+-bug fixes  
+-aesthetic finishes  
+
 Update of Update 6 April 2017  
 -added basic login functionality  
 -added user registration  
