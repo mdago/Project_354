@@ -54,12 +54,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -68,9 +68,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.controlsfx.control.Notifications;
-import org.controlsfx.control.PopOver;
-import org.controlsfx.control.PopOver.ArrowLocation;
 import org.gillius.jfxutils.chart.ChartPanManager;
 import org.gillius.jfxutils.chart.ChartZoomManager;
 
@@ -86,6 +83,9 @@ import yahoofinance.histquotes.Interval;
  * @version 2.0
  */
 public class Display extends Application {
+	/**
+	 * Number of checked boxes at any one time
+	 */
 	private int checkedCount = 0;
 	
 	/**
@@ -179,7 +179,7 @@ public class Display extends Application {
 	/**
 	 * Double array representing closing prices of stock
 	 */
-	double[] closings;
+	private double[] closings;
 	
 	/**
 	 * Integer value representing time span for stock
@@ -207,9 +207,24 @@ public class Display extends Application {
 	private String delimiter;
 	
 	/**
+	 * String that is used to help change the password of the user
+	 */
+	private String oldPassString;
+	
+	/**
+	 * String that is used to help change the password of the user
+	 */
+	private String newPassString;
+	
+	/**
 	 * Boolean to determine if a stock was selected
 	 */
 	private boolean stockSelected = false;
+	
+	/**
+	 * Boolean to check if old password is correct when changing passwords
+	 */
+	boolean oldPassValidated = false;
 	
 	/**
 	 * 20 day moving average checkbox
@@ -242,36 +257,6 @@ public class Display extends Application {
 	private TableView table = new TableView();
 	
 	/**
-	 * Stock Popover message box
-	 */
-	private PopOver stockOver;
-	
-	/**
-	 * Graph popover
-	 */
-	private PopOver graphOver;
-	
-	/**
-	 * Radio button popover
-	 */
-	private PopOver radioOver;
-	
-	/**
-	 * MA button popover
-	 */
-	private PopOver checkOver;
-	
-	/**
-	 * Log popover
-	 */
-	private PopOver logOver;
-	
-	/**
-	 * Controls popover
-	 */
-	private PopOver menuOver;
-	
-	/**
 	 * Layout Pane set as a border pane
 	 */
 	private BorderPane bp;
@@ -289,7 +274,7 @@ public class Display extends Application {
 	/**
 	 * Stocky's main window with stock information and graphing
 	 */
-	private void openMainWindow(Stage stage){
+	private void openMainWindow(Stage stage, String username){
 		// set title of window
         stage.setTitle("Stocky");
         
@@ -307,18 +292,23 @@ public class Display extends Application {
         file.setAccelerator(KeyCombination.keyCombination("SHORTCUT+F"));
         
         //	add items to file
-        MenuItem settings = new MenuItem("_Settings  ");
-        
-        //	add custom key combination for fast access
-        settings.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         MenuItem logout = new MenuItem("_Log out  ");
         logout.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
+		MenuItem changePassword = new MenuItem("_Change Password  ");
+        changePassword.setAccelerator(KeyCombination.keyCombination("Ctrl+P"));
         MenuItem exit = new MenuItem("Exit");
         
         //	exit to login screen on click
         logout.setOnAction(new EventHandler<ActionEvent>() {
         	public void handle(ActionEvent t) {
         		openLoginWindow(stage);
+        	}
+        });
+		
+        //	change password
+		changePassword.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent t) {
+        		openChangePassWindow(stage, username);
         	}
         });
         
@@ -330,7 +320,7 @@ public class Display extends Application {
         });
         
         //	add tabs to 'file'
-        file.getItems().addAll(settings, logout, new SeparatorMenuItem(), exit);
+        file.getItems().addAll(logout, changePassword, new SeparatorMenuItem(), exit);
         
         //	create chart tab
         Menu chart = new Menu("_Chart");
@@ -396,6 +386,7 @@ public class Display extends Application {
         	}
         });
         
+        //	about menu item
         MenuItem about = new MenuItem("_About Stocky  ");
         about.setAccelerator(KeyCombination.keyCombination("Ctrl+A"));
         
@@ -442,7 +433,7 @@ public class Display extends Application {
         left.setPadding(new Insets(25, 0, 25, 10));
         left.setSpacing(15);
         
-        Label welcome = new Label("Welcome, USERNAME");
+        Label welcome = new Label("Welcome, " + username);
         welcome.getStyleClass().add("username-style");
         welcome.setStyle("-fx-text-fill: #81d4fa;");
         
@@ -456,6 +447,7 @@ public class Display extends Application {
         //	add custom css class
         stockList.getStyleClass().add("list-view-style");
         
+        //	list containing stock names
         ObservableList<String> items = FXCollections.observableArrayList (
           	  "     " + names[0], "     " + names[1], "     " + names[2], "     " + names[3], "     " + names[4]
           	, "     " + names[5], "     " + names[6], "     " + names[7], "     " + names[8], "     " + names[9]
@@ -583,8 +575,9 @@ public class Display extends Application {
         		Calendar start = Calendar.getInstance();
         		Calendar end = Calendar.getInstance();
         		
-               stockIndex = stockList.getSelectionModel().getSelectedIndex();
-               try {   
+        		//	get index of selected stock
+                stockIndex = stockList.getSelectionModel().getSelectedIndex();
+                try {   
             	   //	set stock selected to true
             	   stockSelected = true;
             	   
@@ -604,9 +597,13 @@ public class Display extends Application {
        					delimiter = " (in Months)";
        				}
             	   
+       				//	create new stock
 				   stock = YahooFinance.get(tickers[stockIndex], start, end, interval);
 				   
+				   //	closing prices 
 				   closings = new double[stock.getHistory().size()];
+				   
+				   //	dates of closing prices
 				   dates = new DateObject[stock.getHistory().size()];
 				   
 				   //	add data to array 
@@ -637,7 +634,7 @@ public class Display extends Application {
 				   
                } catch (IOException e) {
             	   //	display connection error
-            	   displayException();
+            	   ExceptionHandler.displayException();
                }
             }
         });
@@ -711,7 +708,7 @@ public class Display extends Application {
             		//	display warning if stock was not yet selected
             		if (stockIndex == -1) {
             			//	update timespan so that if the stock is selected next, the correct information is displayed
-            			displayWarning("No Stock Selected", "Please select a stock before choosing a time span.");
+            			ExceptionHandler.displayWarning("No Stock Selected", "Please select a stock before choosing a time span.");
             			
             			//	update timespan so if a stock is then selected, correct display is shown
             			RadioButton selected = (RadioButton) group.getSelectedToggle();
@@ -780,7 +777,7 @@ public class Display extends Application {
             			} 
             			catch (IOException e) {
             				//	display connection error
-            				displayException();
+            				ExceptionHandler.displayException();
             			}
             		}
                 }
@@ -797,9 +794,13 @@ public class Display extends Application {
         twenty.selectedProperty().addListener(new ChangeListener<Boolean>() {
         	@Override
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+        		//	check if a stock is selected
         		if (stockSelected) {
+        			//	check if the 20 check box is selected
         			if (twenty.isSelected()) {
+        				//	increment checkbox checked counter
         				++checkedCount;
+        				//	special case for timespan of all time
         				if (timeSpan == 100) {
         					double[] averages = calculator.calculateMovingAverage(closings, 20);
         					addAverageToGraph(averages, show, 20, timeSpan);
@@ -811,7 +812,7 @@ public class Display extends Application {
     							addAverageToGraph(averages, show, 20, timeSpan);	
     						} 
             				catch (IOException e) {
-    							displayException();
+            					ExceptionHandler.displayException();
     						}
         				}
         			}
@@ -820,12 +821,12 @@ public class Display extends Application {
         				//	clear data from series and remove from graph
         				twentyDayMA.getData().clear();
         				show.getData().remove(twentyDayMA);
-        				bp.setCenter(show);
+        				//bp.setCenter(show);
         			}
         		}
         		else {
         			if (twenty.isSelected()) {
-        				displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
+        				ExceptionHandler.displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
         			}
         		}
         	}
@@ -847,7 +848,7 @@ public class Display extends Application {
     							addAverageToGraph(averages, show, 50, timeSpan);    							
     						} 
             				catch (IOException e) {
-    							displayException();
+            					ExceptionHandler.displayException();
     						}
         				}
         			}
@@ -856,12 +857,12 @@ public class Display extends Application {
         				//	clear data from series and remove from graph
         				fiftyDayMA.getData().clear();
         				show.getData().remove(fiftyDayMA);
-        				bp.setCenter(show);
+        				//bp.setCenter(show);
         			}
         		}
         		else {
         			if (fifty.isSelected()) {
-        				displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
+        				ExceptionHandler.displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
         			}
         		}
         	}
@@ -884,7 +885,7 @@ public class Display extends Application {
     							
     						} 
             				catch (IOException e) {
-    							displayException();
+            					ExceptionHandler.displayException();
     						}
         				}
         			}
@@ -893,12 +894,12 @@ public class Display extends Application {
         				//	clear data from series and remove from graph
         				oneHundredDayMA.getData().clear();
         				show.getData().remove(oneHundredDayMA);
-        				bp.setCenter(show);
+        				//bp.setCenter(show);
         			}
         		}
         		else {
         			if (oneHundred.isSelected()) {
-        				displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
+        				ExceptionHandler.displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
         			}
         		}
         	}
@@ -921,7 +922,7 @@ public class Display extends Application {
     							
     						} 
             				catch (IOException e) {
-    							displayException();
+            					ExceptionHandler.displayException();
     						}
         				}
         			}
@@ -930,12 +931,12 @@ public class Display extends Application {
         				//	clear data from series and remove from graph
         				twoHundredDayMA.getData().clear();
         				show.getData().remove(twoHundredDayMA);
-        				bp.setCenter(show);
+        				//bp.setCenter(show);
         			}
         		}
         		else {
         			if (twoHundred.isSelected()) {
-        				displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
+        				ExceptionHandler.displayWarning("No Stock Selected", "Please select a stock before choosing a moving average.");
         			}
         		}
         	}
@@ -1002,11 +1003,11 @@ public class Display extends Application {
         	@Override
         	public void handle(ActionEvent a) {   
         		if (show == null) {
-        			displayWarning("Not enough information", "To show help, select a stock then select 'Show Help'.");
+        			ExceptionHandler.displayWarning("Not enough information", "To show help, select a stock then select 'Show Help'.");
         		}
         		else {
         			//	display hints
-        			tutorial(menuBar, stockList, show, oneYear, twenty, table);
+        			Tutorial.tutorial(menuBar, stockList, show, oneYear, twenty, table);
         		}
         	}
         });
@@ -1040,26 +1041,27 @@ public class Display extends Application {
         showF.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
         	public void handle(ActionEvent a) {
+        		//	cases for which boxes are checked and make sure that only 2 are selected at time of menu invocation
         		if (twenty.isSelected() && fifty.isSelected() && (checkedCount == 2)) {
-        			showFlags(twentyDayMA, fiftyDayMA, 20);
+        			showFlags(twentyDayMA, fiftyDayMA, 20, 50);
         		}
         		else if (twenty.isSelected() && oneHundred.isSelected() && (checkedCount == 2)) {
-        			showFlags(twentyDayMA, oneHundredDayMA, 20);
+        			showFlags(twentyDayMA, oneHundredDayMA, 20, 100);
         		}
         		else if (twenty.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
-        			showFlags(twentyDayMA, twoHundredDayMA, 20);
+        			showFlags(twentyDayMA, twoHundredDayMA, 20, 200);
         		}
         		else if (fifty.isSelected() && oneHundred.isSelected() && (checkedCount == 2)) {
-        			showFlags(fiftyDayMA, oneHundredDayMA, 50);
+        			showFlags(fiftyDayMA, oneHundredDayMA, 50, 100);
         		}
         		else if (fifty.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
-        			showFlags(fiftyDayMA, twoHundredDayMA, 50);
+        			showFlags(fiftyDayMA, twoHundredDayMA, 50, 200);
         		}
         		else if (oneHundred.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
-        			showFlags(oneHundredDayMA, twoHundredDayMA, 100);
+        			showFlags(oneHundredDayMA, twoHundredDayMA, 100, 200);
         		}
         		else
-        			displayWarning("Flags can only be shown for 2 series", "Please select only two moving averages");
+        			ExceptionHandler.displayWarning("Flags can only be shown for 2 series", "Please select only two moving averages");
         	}
         });
         
@@ -1081,8 +1083,10 @@ public class Display extends Application {
         //	start fade
         t.play();
         
+        //	get size of screen
         Rectangle2D screenSize = Screen.getPrimary().getVisualBounds();
         
+        //	set window to be size of current screen
         Scene scene  = new Scene(bp, screenSize.getWidth(), screenSize.getHeight());
         
         //	add custom font
@@ -1176,7 +1180,7 @@ public class Display extends Application {
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty()){
         			try{
         				if(LoginManager.verifyLogin(usernameTextField.getText(), passwordTextField.getText()))
-        					openMainWindow(stage);
+        					openMainWindow(stage, usernameTextField.getText());
         				else{
         					passwordTextField.clear();
                 			errorLabel.setText("Login info not correct.");
@@ -1315,6 +1319,124 @@ public class Display extends Application {
         registerStage.show();
 	}
 	
+ 	/**
+	 * Opens the window in which the user can change their password
+	 * @param primaryStage the background window used to attach the pop-up to it
+	 * @param username the username of the current user
+	 */
+	public void openChangePassWindow(Stage primaryStage, String username) {
+		//  the main stage of the password change window
+		Stage changePassStage = new Stage();
+		changePassStage.setTitle("Change Password");
+		changePassStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+		changePassStage.initModality(Modality.WINDOW_MODAL);
+		changePassStage.initOwner(primaryStage);
+		
+		//  this grid holds all of the text fields, labels and buttons
+		GridPane changePassGrid = new GridPane();
+		changePassGrid.setAlignment(Pos.CENTER);
+		changePassGrid.setPadding(new Insets(10, 10, 10, 10));
+		changePassGrid.setVgap(5);
+		changePassGrid.setHgap(10);
+		
+		HBox hbButtons = new HBox();
+        hbButtons.setAlignment(Pos.BASELINE_CENTER);
+        hbButtons.setPadding(new Insets(10, 10, 10, 10));
+        hbButtons.setSpacing(20);
+        
+        Button submitButton = new Button("Submit");
+        Button clearButton = new Button("Start Over");
+        
+        final Label passwordLabel = new Label("Old Password:");
+        final PasswordField passwordTextField = new PasswordField();
+        final Label confirmPassLabel = new Label("Confirm Password:");
+        final PasswordField confirmPassTextField = new PasswordField();
+        final Label errorLabel = new Label();
+        
+        hbButtons.getChildren().addAll(submitButton, clearButton);
+        
+        changePassGrid.add(passwordLabel, 0, 0);
+        changePassGrid.add(passwordTextField, 1, 0);
+        changePassGrid.add(confirmPassLabel, 0, 1);
+        changePassGrid.add(confirmPassTextField, 1, 1);
+        changePassGrid.add(hbButtons, 0, 2, 2, 1);
+        changePassGrid.add(errorLabel, 0, 3, 2, 1);
+        
+        //  the implementation of the submit button which checks the user's credentials, if correct
+        //  it provides the user with the ability to change their password
+        submitButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+        	public void handle(ActionEvent e){
+        		errorLabel.setText("");
+        		
+        		//  check if the old password has been validated
+        		if(!oldPassValidated){
+        			if(passwordTextField.getText().isEmpty() || passwordTextField.getText().isEmpty()){
+        				passwordTextField.clear();
+        				confirmPassTextField.clear();
+        				errorLabel.setText("Fields not properly filled.");
+        			} else
+						try {
+							if(passwordTextField.getText().equals(confirmPassTextField.getText()) &&
+									LoginManager.verifyLogin(username, passwordTextField.getText())){
+								oldPassValidated = true;
+								oldPassString = passwordTextField.getText();
+								passwordTextField.clear();
+								confirmPassTextField.clear();
+								passwordLabel.setText("New Password:");
+							}
+							else{
+								passwordTextField.clear();
+								confirmPassTextField.clear();
+								errorLabel.setText("Could not change password.");
+								errorLabel.setTextFill(Color.rgb(210, 50, 35));
+							}
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+       			}
+        		//  this statement is run when the password is validated
+        		else{
+        			if(passwordTextField.getText().equals(confirmPassTextField.getText())){
+        				newPassString = passwordTextField.getText();
+       					String message = LoginManager.changePassword(username, oldPassString, newPassString);   
+       					passwordTextField.clear();
+       					confirmPassTextField.clear();
+       					errorLabel.setText(message);
+       					errorLabel.setTextFill(Color.rgb(255, 255, 255));
+       					passwordLabel.setText("Old password:");
+            			oldPassValidated = false;
+        			}
+        			else{
+        				passwordTextField.clear();
+       					confirmPassTextField.clear();
+       					errorLabel.setText("Could not change password.");
+       					errorLabel.setTextFill(Color.rgb(210, 50, 35));
+        			}
+        		}
+        	}
+        	
+        });
+        
+        //  the clear button empties the text fields and the error label
+        clearButton.setOnAction(new EventHandler<ActionEvent>(){
+        	@Override
+        	public void handle(ActionEvent e){
+        		passwordTextField.clear();
+        		confirmPassTextField.clear();
+        		errorLabel.setText(null);
+        	}
+        });
+        
+        //  the scene is attached to the stage
+        Scene changePasswordScene  = new Scene(changePassGrid, 460, 300);
+        changePasswordScene.getStylesheets().add("file:src/assets/login.css");
+        
+        changePassStage.setScene(changePasswordScene);
+        changePassStage.setResizable(false);
+        changePassStage.show();
+	}
+	
 	/**
 	 * Overrides Application start method. This method creates and runs the GUI
 	 * @throws IOException Throw exception if error with connection to Yahoo
@@ -1350,6 +1472,7 @@ public class Display extends Application {
         
         ac.setAnimated(true);
         
+        //	return chart
         return ac;		
 	}
 	
@@ -1429,28 +1552,6 @@ public class Display extends Application {
 	}	
 	
 	/**
-	 * Displays exception if connection error
-	 */
-	private void displayException() {
-		Alert exception = new Alert(AlertType.ERROR);
-		exception.setTitle("Exception Dialog");
-		exception.setHeaderText("A Connection Error was Detected");
-		exception.setContentText("Could not establish a connection with Yahoo Finance. Please check that you are properly connected to the Internet.");
-		
-		exception.showAndWait();
-	}
-	
-	/**
-	 * Displays warning if a stock isn't selected while making choices
-	 * @param warningTitle Title of the notification
-	 * @param warningMessage Accompanying warning message for notification
-	 */
-	private void displayWarning(String warningTitle, String warningMessage) {
-		//	create new warning
-		Notifications.create().position(Pos.TOP_CENTER).title(warningTitle).text(warningMessage).darkStyle().showWarning();
-	}
-	
-	/**
 	 * Adds moving averages to graph
 	 * @param averages Array of moving averages
 	 * @param chart Chart which will contain the data
@@ -1511,100 +1612,11 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Checks and returns intersection points between 2 lines
-	 * @param s1 data series 1 (should be closing prices if closing prices are being used to check)
-	 * @param s2 data series 2
-	 * @param period period of moving average (if both series are moving averages, put the period as 1)
-	 * @return ArrayList of intersection points
-	 */
-	private ArrayList<Point2D> checkIntersection(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
-		//	array that will be returned
-		ArrayList<Point2D> points = new ArrayList<Point2D>();
-		
-		//	starting point for loop
-		int bound = 0;
-		
-		//	if the series are the same size, start at 1, else start at the period (special case of all time timespan)
-		if (s1.getData().size() <= s2.getData().size())
-			bound = 1;
-		else
-			bound = period;
-		
-		//	loop through entire data series
-		for (int i = bound; i < s1.getData().size(); ++i) {
-			//	if there's an intersection, calculate intersection point and add it to the array
-			if (Line2D.linesIntersect(s1.getData().get(i-1).getXValue().doubleValue(), s1.getData().get(i-1).getYValue().doubleValue(), 
-					s1.getData().get(i).getXValue().doubleValue(), s1.getData().get(i).getYValue().doubleValue(), 
-					s2.getData().get(i-1).getXValue().doubleValue(), s2.getData().get(i-1).getYValue().doubleValue(), 
-					s2.getData().get(i).getXValue().doubleValue(), s2.getData().get(i).getYValue().doubleValue())) 
-			{
-				points.add(getIntersectionPoint(s1.getData().get(i-1).getXValue().doubleValue(), s1.getData().get(i-1).getYValue().doubleValue(), 
-					s1.getData().get(i).getXValue().doubleValue(), s1.getData().get(i).getYValue().doubleValue(), 
-					s2.getData().get(i-1).getXValue().doubleValue(), s2.getData().get(i-1).getYValue().doubleValue(), 
-					s2.getData().get(i).getXValue().doubleValue(), s2.getData().get(i).getYValue().doubleValue()));
-			}
-		}
-		//	return array of points
-		return points;
-	}
-	
-	/**
-	 * Calculates the intersection point using the determinant method based on simplified Linear Algebraic matrices
-	 * @param x1 x-coordinate of the first point
-	 * @param y1 y-coordinate of the first point
-	 * @param x2 x-coordinate of the second point
-	 * @param y2 y-coordinate of the second point
-	 * @param x3 x-coordinate of the third point
-	 * @param y3 y-coordinate of the third point
-	 * @param x4 x-coordinate of the fourth point
-	 * @param y4 y-coordinate of the fourth point
-	 * @return The intersection point, x and y coordinates as a Point2D.Double
-	 */
-	private Point2D.Double getIntersectionPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4) {
-		//	solved using determinants, based on inspiration from CommanderKeith and lbackstrom and references from 
-		//	https://www.topcoder.com/community/data-science/data-science-tutorials/geometry-concepts-line-intersection-and-its-applications/
-		
-		//	determinant for line 1
-	    double det1And2 = det(x1, y1, x2, y2);
-	    
-	    //	determinant for line 2
-	    double det3And4 = det(x3, y3, x4, y4);
-	    
-	    //	algebraic multiplications
-	    double x1X2 = x1 - x2;
-	    double y1Y2 = y1 - y2;
-	    double x3X4 = x3 - x4;
-	    double y3Y4 = y3 - y4;
-	    
-	    //	determinant of algebraic multiplications
-	    double det1Less2And3Less4 = det(x1X2, y1Y2, x3X4, y3Y4);
-	    
-	    //	using the above algebraic simplifications, the coordinate points can be solved
-	    double x = (det(det1And2, x1X2, det3And4, x3X4) / det1Less2And3Less4);
-	    double y = (det(det1And2, y1Y2, det3And4, y3Y4) / det1Less2And3Less4);
-	    
-	    //	return the point
-	    return new Point2D.Double(x, y);
-	}
-	
-	/**
-	 * Calculates determinant from the equivalent of a 2d matrix
-	 * @param a row 1, column 1
-	 * @param b row 1, column 2
-	 * @param c row 2, column 1
-	 * @param d row 2, column 2
-	 * @return determinant
-	 */
-	private static double det(double a, double b, double c, double d) {
-	      return a * d - b * c;
-	}
-	
-	/**
 	 * Create images for stocks
 	 * @return Array of images
 	 */
 	private  Image[] createImages() {
-		//	create array
+		//	create array of images
 		imgs = new Image[30];
 		for (int i = 0; i < 30; ++i) {
 			if (i == 11)
@@ -1613,118 +1625,6 @@ public class Display extends Application {
 				imgs[i] = new Image("file:src/imgs/img" + i + ".png", 50.0, 50.0, true, true); 
 		}
 		return imgs;
-	}
-	
-	/**
-	 * Displays popup for stock list help
-	 */
-	private void displayStockTutorial(ListView<?> list) {
-		if (stockOver == null) {
-			stockOver = new PopOver();
-			stockOver.setArrowLocation(ArrowLocation.BOTTOM_CENTER);
-			stockOver.setContentNode(new Label("Select a stock from this list\n by clicking on an item."));
-			stockOver.setAutoFix(true);
-			stockOver.setAutoHide(true);
-			stockOver.setHideOnEscape(true);
-			stockOver.setDetachable(false);
-		}
-		
-		stockOver.show(list);
-	}
-	
-	/**
-	 * Displays popup for graph help
-	 */
-	private void displayGraphTutorial(AreaChart<Number, Number> chart) {
-		if (graphOver == null) {
-			graphOver = new PopOver();
-			graphOver.setArrowLocation(ArrowLocation.TOP_CENTER);
-			graphOver.setContentNode(new Label("The daily closings prices will be displayed here \nonce a stock is selected.\nUse the mouse wheel to zoom. "
-					+ "Hold down Right click \nand move the mouse to pan. The view can be reset at any time\nby selecting 'reset' from the 'Chart' tab"));
-			graphOver.setAutoFix(true);
-			graphOver.setAutoHide(true);
-			graphOver.setHideOnEscape(true);
-			graphOver.setDetachable(false);
-		}
-		graphOver.show(chart);
-	}
-
-	/**
-	 * Displays popup for radio button help
-	 */
-	private void displayTimeSpanTutorial(RadioButton r) {
-		if (radioOver == null) {
-			radioOver = new PopOver();
-			radioOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
-			radioOver.setContentNode(new Label("The timespan for the closing prices can be\nselected from these options. The graph\ndisplays the information from left (least recent)\nto right (most recent)."));
-			radioOver.setAutoFix(true);
-			radioOver.setAutoHide(true);
-			radioOver.setHideOnEscape(true);
-			radioOver.setDetachable(false);
-		}
-		radioOver.show(r);
-	}
-
-	/**
-	 * Displays popup for ma checkboxes
-	 */
-	private void displayMATutorial(CheckBox cb) {
-		if (checkOver == null) {
-			checkOver = new PopOver();
-			checkOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
-			checkOver.setContentNode(new Label("Various Moving Averages can be shown on the graph by\nselecting one or multiple options here."));
-			checkOver.setAutoFix(true);
-			checkOver.setAutoHide(true);
-			checkOver.setHideOnEscape(true);
-			checkOver.setDetachable(false);
-		}
-		checkOver.show(cb);
-	}
-	
-	/**
-	 * Displays popup for log
-	 */
-	private void displayLogTutorial(TableView t) {
-		if (logOver == null) {
-			logOver = new PopOver();
-			logOver.setArrowLocation(ArrowLocation.RIGHT_CENTER);
-			logOver.setContentNode(new Label("A log of recently viewed stocks can be seen here.\nClicking on 'name' will sort the entries alphabetically."));
-			logOver.setAutoFix(true);
-			logOver.setAutoHide(true);
-			logOver.setHideOnEscape(true);
-			logOver.setDetachable(false);
-		}
-		
-		logOver.show(t);
-	}
-
-	/**
-	 * Display popup for menu bar
-	 */
-	private void displayMenuBarTutorial(MenuBar mb) {
-		if (menuOver == null) {
-			menuOver = new PopOver();
-			menuOver.setArrowLocation(ArrowLocation.TOP_CENTER);
-			menuOver.setContentNode(new Label("Controls for logging out, exiting, accessing settings, finding help\n and adjusting the chart can be found in these menus"));
-			menuOver.setAutoFix(true);
-			menuOver.setAutoHide(true);
-			menuOver.setHideOnEscape(true);
-			menuOver.setDetachable(false);
-		}
-		
-		menuOver.show(mb);
-	}
-	
-	/**
-	 * Displays helper messages to user
-	 */
-	private void tutorial(MenuBar mb, ListView<?> list, AreaChart<Number, Number> chart, RadioButton r, CheckBox cb, TableView t) {
-		displayMenuBarTutorial(mb);
-		displayStockTutorial(list);
-		displayGraphTutorial(chart);
-		displayTimeSpanTutorial(r);
-		displayMATutorial(cb);
-		displayLogTutorial(t);
 	}
 	
 	/**
@@ -1870,12 +1770,19 @@ public class Display extends Application {
         launch(args);
     }
 
-
-    private ArrayList<Flag> buyOrSell(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
-			ArrayList<Point2D> intersectPointsMa20 = checkIntersection(s1,s2, 20);
+    /**
+     * Determines if the intersection point is a buy or sell points
+     * @param s1 smaller data series
+     * @param s2 larger data series
+     * @param period period of moving average
+     * @return array lost containing intersection points
+     */
+    private ArrayList<Flag> buyOrSell(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period1, int period2) {
+			ArrayList<Point2D> intersectPointsMa20 = calculator.checkIntersection(s1,s2, period1, period2);
 			ArrayList<Flag> listOfFlags = new ArrayList<Flag>();
 			
 			for(int i = 0; i < intersectPointsMa20.size() ; i++){
+				//	get indices around intersection point
 				int prev = (int) Math.floor(intersectPointsMa20.get(i).getX());
 				int next = (int) Math.ceil(intersectPointsMa20.get(i).getX());
 				
@@ -1894,10 +1801,17 @@ public class Display extends Application {
 				}
 			
 			}
+			//	return list
 			return listOfFlags;
 	}
     
-    private void showFlags(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
+    /**
+     * Creates and displays a horizontal list view containing the buy and sell signals
+     * @param s1 smaller data series
+     * @param s2 larger data series
+     * @param period period of ma calculation
+     */
+    private void showFlags(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period1, int period2) {
     	// 	flags
 		   
 		//	create vertical box pane for central display
@@ -1909,11 +1823,9 @@ public class Display extends Application {
 		//	set preferred height
 		middle.prefHeightProperty().bind(bp.heightProperty());
 		
-		
-		
 		//	list of flags
 		ObservableList<String> fs = FXCollections.observableArrayList ();
-		ArrayList<Flag> f = buyOrSell(s1, s2, period);
+		ArrayList<Flag> f = buyOrSell(s1, s2, period1, period2);
 		fs.clear();
 		for (int i = 0; i < f.size(); ++i)
 			fs.add(f.get(i).displayInfo());
