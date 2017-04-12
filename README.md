@@ -1,4 +1,9 @@
 # Project 354
+Update 12 April 2017
+-added change password functionality
+-register and change password windows disable the background window
+-username is now shown in the main window
+
 Update 8 April 2017  
 -added intersection calculator method  
 -bug fixes  
