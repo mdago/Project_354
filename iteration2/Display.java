@@ -53,6 +53,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -199,9 +200,23 @@ public class Display extends Application {
 	private String delimiter;
 	
 	/**
+	 * String that is used to help change the password of the user
+	 */
+	private String oldPassString;
+	
+	/**
+	 * String that is used to help change the password of the user
+	 */
+	private String newPassString;
+	/**
 	 * Boolean to determine if a stock was selected
 	 */
 	private boolean stockSelected = false;
+	
+	/**
+	 * Boolean to check if old password is correct when changing passwords
+	 */
+	boolean oldPassValidated = false;
 	
 	/**
 	 * 20 day moving average checkbox
@@ -281,7 +296,7 @@ public class Display extends Application {
 	/**
 	 * Stocky's main window with stock information and graphing
 	 */
-	private void openMainWindow(Stage stage){
+	private void openMainWindow(Stage stage, String username){
 		// set title of window
         stage.setTitle("Stocky");
         
@@ -305,12 +320,20 @@ public class Display extends Application {
         settings.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         MenuItem logout = new MenuItem("_Log out  ");
         logout.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
+        MenuItem changePassword = new MenuItem("_Change Password  ");
+        changePassword.setAccelerator(KeyCombination.keyCombination("Ctrl+P"));
         MenuItem exit = new MenuItem("Exit");
         
         //	exit to login screen on click
         logout.setOnAction(new EventHandler<ActionEvent>() {
         	public void handle(ActionEvent t) {
         		openLoginWindow(stage);
+        	}
+        });
+        
+        changePassword.setOnAction(new EventHandler<ActionEvent>() {
+        	public void handle(ActionEvent t) {
+        		openChangePassWindow(stage, username);
         	}
         });
         
@@ -322,7 +345,7 @@ public class Display extends Application {
         });
         
         //	add tabs to 'file'
-        file.getItems().addAll(settings, logout, new SeparatorMenuItem(), exit);
+        file.getItems().addAll(settings, logout, changePassword, new SeparatorMenuItem(), exit);
         
         //	create chart tab
         Menu chart = new Menu("_Chart");
@@ -426,7 +449,7 @@ public class Display extends Application {
         left.setPadding(new Insets(25, 0, 25, 10));
         left.setSpacing(15);
         
-        Label welcome = new Label("Welcome, USERNAME");
+        Label welcome = new Label("Welcome, " + username);
         welcome.getStyleClass().add("username-style");
         welcome.setStyle("-fx-text-fill: #81d4fa;");
         
@@ -1046,7 +1069,8 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Method which opens the login window
+	 * Method which opens the initial login window
+	 * @param stage the main stage used to hold both the login and the main window
 	 */
 	private void openLoginWindow(Stage stage){
 		//	title window
@@ -1114,7 +1138,7 @@ public class Display extends Application {
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty()){
         			try{
         				if(LoginManager.verifyLogin(usernameTextField.getText(), passwordTextField.getText()))
-        					openMainWindow(stage);
+        					openMainWindow(stage, usernameTextField.getText());
         				else{
         					passwordTextField.clear();
                 			errorLabel.setText("Login info not correct.");
@@ -1148,7 +1172,7 @@ public class Display extends Application {
         registerButton.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
-        		openRegisterWindow();
+        		openRegisterWindow(stage);
         	}
         });
         
@@ -1175,13 +1199,18 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Method used to open the registration window.
+	 * Opens the window where a new user can register an account
+	 * @param primaryStage
 	 */
-	public void openRegisterWindow(){
+	public void openRegisterWindow(Stage primaryStage){
+		//  the main stage of the registration window
 		Stage registerStage = new Stage();
 		registerStage.setTitle("Registation");
 		registerStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+		registerStage.initModality(Modality.WINDOW_MODAL);
+		registerStage.initOwner(primaryStage);
 		
+		//  this grid holds all of the text fields, labels and buttons  
 		GridPane registerGrid = new GridPane();
 		registerGrid.setAlignment(Pos.CENTER);
 		registerGrid.setPadding(new Insets(10, 10, 10, 10));
@@ -1215,15 +1244,18 @@ public class Display extends Application {
         registerGrid.add(hbButtons, 0, 3, 2, 1);
         registerGrid.add(errorLabel, 0, 4, 2, 1);
         
+        //  the submit button checks if the text fields are empty and if not, if the passwords match, registers the user
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
         	public void handle(ActionEvent e){
         		errorLabel.setText("");
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty() && 
         				passwordTextField.getText().equals(confirmPassTextField.getText())){
-        			LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
-        			
-        			registerStage.close();
+        			String message = LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
+        			passwordTextField.clear();
+        			confirmPassTextField.clear();
+        			errorLabel.setText(message);
+        			errorLabel.setTextFill(Color.rgb(50, 210, 35));
         		}
         		else{
         			passwordTextField.clear();
@@ -1234,7 +1266,8 @@ public class Display extends Application {
         	}
         	
         });
-        
+    
+        //  the clear button empties the text fields and the error label
         clearButton.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
@@ -1245,12 +1278,131 @@ public class Display extends Application {
         	}
         });
         
+        //  the scene is attached to the stage
         Scene registerScene  = new Scene(registerGrid, 460, 300);
         registerScene.getStylesheets().add("file:src/assets/login.css");
         
         registerStage.setScene(registerScene);
         registerStage.setResizable(false);
         registerStage.show();
+	}
+	
+	/**
+	 * Opens the window in which the user can change their password
+	 * @param primaryStage the background window used to attach the pop-up to it
+	 * @param username the username of the current user
+	 */
+	public void openChangePassWindow(Stage primaryStage, String username) {
+		//  the main stage of the password change window
+		Stage changePassStage = new Stage();
+		changePassStage.setTitle("Change Password");
+		changePassStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+		changePassStage.initModality(Modality.WINDOW_MODAL);
+		changePassStage.initOwner(primaryStage);
+		
+		//  this grid holds all of the text fields, labels and buttons
+		GridPane changePassGrid = new GridPane();
+		changePassGrid.setAlignment(Pos.CENTER);
+		changePassGrid.setPadding(new Insets(10, 10, 10, 10));
+		changePassGrid.setVgap(5);
+		changePassGrid.setHgap(10);
+		
+		HBox hbButtons = new HBox();
+        hbButtons.setAlignment(Pos.BASELINE_CENTER);
+        hbButtons.setPadding(new Insets(10, 10, 10, 10));
+        hbButtons.setSpacing(20);
+        
+        Button submitButton = new Button("Submit");
+        Button clearButton = new Button("Start Over");
+        
+        final Label passwordLabel = new Label("Old Password:");
+        final PasswordField passwordTextField = new PasswordField();
+        final Label confirmPassLabel = new Label("Confirm Password:");
+        final PasswordField confirmPassTextField = new PasswordField();
+        final Label errorLabel = new Label();
+        
+        hbButtons.getChildren().addAll(submitButton, clearButton);
+        
+        changePassGrid.add(passwordLabel, 0, 0);
+        changePassGrid.add(passwordTextField, 1, 0);
+        changePassGrid.add(confirmPassLabel, 0, 1);
+        changePassGrid.add(confirmPassTextField, 1, 1);
+        changePassGrid.add(hbButtons, 0, 2, 2, 1);
+        changePassGrid.add(errorLabel, 0, 3, 2, 1);
+        
+        //  the implementation of the submit button which checks the user's credentials, if correct
+        //  it provides the user with the ability to change their password
+        submitButton.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+        	public void handle(ActionEvent e){
+        		errorLabel.setText("");
+        		
+        		//  check if the old password has been validated
+        		if(!oldPassValidated){
+        			if(passwordTextField.getText().isEmpty() || passwordTextField.getText().isEmpty()){
+        				passwordTextField.clear();
+        				confirmPassTextField.clear();
+        				errorLabel.setText("Fields not properly filled.");
+        			} else
+						try {
+							if(passwordTextField.getText().equals(confirmPassTextField.getText()) &&
+									LoginManager.verifyLogin(username, passwordTextField.getText())){
+								oldPassValidated = true;
+								oldPassString = passwordTextField.getText();
+								passwordTextField.clear();
+								confirmPassTextField.clear();
+								passwordLabel.setText("New Password:");
+							}
+							else{
+								passwordTextField.clear();
+								confirmPassTextField.clear();
+								errorLabel.setText("Could not change password.");
+								errorLabel.setTextFill(Color.rgb(210, 50, 35));
+							}
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+       			}
+        		//  this statement is run when the password is validated
+        		else{
+        			if(passwordTextField.getText().equals(confirmPassTextField.getText())){
+        				newPassString = passwordTextField.getText();
+       					String message = LoginManager.changePassword(username, oldPassString, newPassString);   
+       					passwordTextField.clear();
+       					confirmPassTextField.clear();
+       					errorLabel.setText(message);
+       					errorLabel.setTextFill(Color.rgb(255, 255, 255));
+       					passwordLabel.setText("Old password:");
+            			oldPassValidated = false;
+        			}
+        			else{
+        				passwordTextField.clear();
+       					confirmPassTextField.clear();
+       					errorLabel.setText("Could not change password.");
+       					errorLabel.setTextFill(Color.rgb(210, 50, 35));
+        			}
+        		}
+        	}
+        	
+        });
+        
+        //  the clear button empties the text fields and the error label
+        clearButton.setOnAction(new EventHandler<ActionEvent>(){
+        	@Override
+        	public void handle(ActionEvent e){
+        		passwordTextField.clear();
+        		confirmPassTextField.clear();
+        		errorLabel.setText(null);
+        	}
+        });
+        
+        //  the scene is attached to the stage
+        Scene changePasswordScene  = new Scene(changePassGrid, 460, 300);
+        changePasswordScene.getStylesheets().add("file:src/assets/login.css");
+        
+        changePassStage.setScene(changePasswordScene);
+        changePassStage.setResizable(false);
+        changePassStage.show();
 	}
 	
 	/**
