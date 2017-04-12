@@ -14,6 +14,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
@@ -53,7 +54,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -74,7 +74,7 @@ import org.controlsfx.control.PopOver.ArrowLocation;
 import org.gillius.jfxutils.chart.ChartPanManager;
 import org.gillius.jfxutils.chart.ChartZoomManager;
 
-import iteration1.Calculator;
+import iteration2.Flag.Status;
 import yahoofinance.Stock;
 import yahoofinance.YahooFinance;
 import yahoofinance.histquotes.Interval;
@@ -85,11 +85,13 @@ import yahoofinance.histquotes.Interval;
  * @author Stephen Prizio, Marco Dagostino, Ming Tsai, Maximilien Le Clei, Chris McArthur, Himmet Arican, Athanasios Babouras
  * @version 2.0
  */
-public class Display extends Application {	
-	/*
+public class Display extends Application {
+	private int checkedCount = 0;
+	
+	/**
 	 * Label that will hold live time
 	 */
-	Label date = new Label();
+	private Label date = new Label();
 	
 	/**
 	 * Calculator to calculate moving averages
@@ -159,6 +161,11 @@ public class Display extends Application {
 	 */
     private ListView<String> stockList;
 	
+    /**
+     * List of flags for buying or selling signals
+     */
+    private ListView<String> flags;
+    
 	/**
 	 * Index of selected stock in list view menu
 	 */
@@ -200,23 +207,9 @@ public class Display extends Application {
 	private String delimiter;
 	
 	/**
-	 * String that is used to help change the password of the user
-	 */
-	private String oldPassString;
-	
-	/**
-	 * String that is used to help change the password of the user
-	 */
-	private String newPassString;
-	/**
 	 * Boolean to determine if a stock was selected
 	 */
 	private boolean stockSelected = false;
-	
-	/**
-	 * Boolean to check if old password is correct when changing passwords
-	 */
-	boolean oldPassValidated = false;
 	
 	/**
 	 * 20 day moving average checkbox
@@ -296,7 +289,7 @@ public class Display extends Application {
 	/**
 	 * Stocky's main window with stock information and graphing
 	 */
-	private void openMainWindow(Stage stage, String username){
+	private void openMainWindow(Stage stage){
 		// set title of window
         stage.setTitle("Stocky");
         
@@ -320,20 +313,12 @@ public class Display extends Application {
         settings.setAccelerator(KeyCombination.keyCombination("Ctrl+S"));
         MenuItem logout = new MenuItem("_Log out  ");
         logout.setAccelerator(KeyCombination.keyCombination("Ctrl+L"));
-        MenuItem changePassword = new MenuItem("_Change Password  ");
-        changePassword.setAccelerator(KeyCombination.keyCombination("Ctrl+P"));
         MenuItem exit = new MenuItem("Exit");
         
         //	exit to login screen on click
         logout.setOnAction(new EventHandler<ActionEvent>() {
         	public void handle(ActionEvent t) {
         		openLoginWindow(stage);
-        	}
-        });
-        
-        changePassword.setOnAction(new EventHandler<ActionEvent>() {
-        	public void handle(ActionEvent t) {
-        		openChangePassWindow(stage, username);
         	}
         });
         
@@ -345,7 +330,7 @@ public class Display extends Application {
         });
         
         //	add tabs to 'file'
-        file.getItems().addAll(settings, logout, changePassword, new SeparatorMenuItem(), exit);
+        file.getItems().addAll(settings, logout, new SeparatorMenuItem(), exit);
         
         //	create chart tab
         Menu chart = new Menu("_Chart");
@@ -365,6 +350,7 @@ public class Display extends Application {
         			table.getItems().clear();
         			show = null;
         			bp.setCenter(createChart());
+        			checkedCount = 0;
         		}
         	}
         });
@@ -373,8 +359,15 @@ public class Display extends Application {
         MenuItem reset = new MenuItem("_Reset view  ");
         reset.setAccelerator(KeyCombination.keyCombination("Ctrl+R"));
         
+        //	show flags
+        MenuItem showF = new MenuItem("_Show Flags");
+        showF.setAccelerator(KeyCombination.keyCombination("Ctrl+F"));
+        
+        //	hide flags
+        MenuItem hideF = new MenuItem("_Hide Flags");
+        
         //	add items to 'chart'
-        chart.getItems().addAll(newChart, reset);
+        chart.getItems().addAll(newChart, reset, showF, hideF);
         
         //	menu section 'Help'
         Menu help = new Menu("_Help");
@@ -449,7 +442,7 @@ public class Display extends Application {
         left.setPadding(new Insets(25, 0, 25, 10));
         left.setSpacing(15);
         
-        Label welcome = new Label("Welcome, " + username);
+        Label welcome = new Label("Welcome, USERNAME");
         welcome.getStyleClass().add("username-style");
         welcome.setStyle("-fx-text-fill: #81d4fa;");
         
@@ -584,6 +577,7 @@ public class Display extends Application {
     			fifty.setSelected(false);
     			oneHundred.setSelected(false);
     			twoHundred.setSelected(false);
+    			checkedCount = 0;
         		
         		//	get calendar instances
         		Calendar start = Calendar.getInstance();
@@ -635,7 +629,7 @@ public class Display extends Application {
 				   //	remove animations to increase speed
 				   show.setAnimated(false);
 				   
-				   //	display chart
+				   //	display central display
 				   bp.setCenter(show);
 				   
 				   //	add stock to log
@@ -729,6 +723,7 @@ public class Display extends Application {
             			fifty.setSelected(false);
             			oneHundred.setSelected(false);
             			twoHundred.setSelected(false);
+            			checkedCount = 0;
             			
             			//	get calendar instances
             			Calendar start = Calendar.getInstance();
@@ -804,6 +799,7 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (twenty.isSelected()) {
+        				++checkedCount;
         				if (timeSpan == 100) {
         					double[] averages = calculator.calculateMovingAverage(closings, 20);
         					addAverageToGraph(averages, show, 20, timeSpan);
@@ -812,8 +808,7 @@ public class Display extends Application {
         					try {
     							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 20);
     							double[] averages = calculator.calculateMovingAverage(test, 20);
-    							addAverageToGraph(averages, show, 20, timeSpan);
-    							
+    							addAverageToGraph(averages, show, 20, timeSpan);	
     						} 
             				catch (IOException e) {
     							displayException();
@@ -821,9 +816,11 @@ public class Display extends Application {
         				}
         			}
         			else {
+        				--checkedCount;
         				//	clear data from series and remove from graph
         				twentyDayMA.getData().clear();
         				show.getData().remove(twentyDayMA);
+        				bp.setCenter(show);
         			}
         		}
         		else {
@@ -838,6 +835,7 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (fifty.isSelected()) {
+        				++checkedCount;
         				if (timeSpan == 100) {
         					double[] averages = calculator.calculateMovingAverage(closings, 50);
         					addAverageToGraph(averages, show, 50, timeSpan);
@@ -846,8 +844,7 @@ public class Display extends Application {
         					try {
     							double[] test = getStockData(stock, tickers[stockIndex], timeSpan, interval, 50);
     							double[] averages = calculator.calculateMovingAverage(test, 50);
-    							addAverageToGraph(averages, show, 50, timeSpan);
-    							
+    							addAverageToGraph(averages, show, 50, timeSpan);    							
     						} 
             				catch (IOException e) {
     							displayException();
@@ -855,9 +852,11 @@ public class Display extends Application {
         				}
         			}
         			else {
+        				--checkedCount;
         				//	clear data from series and remove from graph
         				fiftyDayMA.getData().clear();
         				show.getData().remove(fiftyDayMA);
+        				bp.setCenter(show);
         			}
         		}
         		else {
@@ -872,6 +871,7 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (oneHundred.isSelected()) {
+        				++checkedCount;
         				if (timeSpan == 100) {
         					double[] averages = calculator.calculateMovingAverage(closings, 100);
         					addAverageToGraph(averages, show, 100, timeSpan);
@@ -889,9 +889,11 @@ public class Display extends Application {
         				}
         			}
         			else {
+        				--checkedCount;
         				//	clear data from series and remove from graph
         				oneHundredDayMA.getData().clear();
         				show.getData().remove(oneHundredDayMA);
+        				bp.setCenter(show);
         			}
         		}
         		else {
@@ -906,6 +908,7 @@ public class Display extends Application {
         	public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
         		if (stockSelected) {
         			if (twoHundred.isSelected()) { 
+        				++checkedCount;
         				if (timeSpan == 100) {
         					double[] averages = calculator.calculateMovingAverage(closings, 200);
         					addAverageToGraph(averages, show, 200, timeSpan);
@@ -923,9 +926,11 @@ public class Display extends Application {
         				}
         			}
         			else {
+        				--checkedCount;
         				//	clear data from series and remove from graph
         				twoHundredDayMA.getData().clear();
         				show.getData().remove(twoHundredDayMA);
+        				bp.setCenter(show);
         			}
         		}
         		else {
@@ -1023,10 +1028,46 @@ public class Display extends Application {
         			fifty.setSelected(false);
         			oneHundred.setSelected(false);
         			twoHundred.setSelected(false);
-        		
+        			checkedCount = 0;
+        			
         			//	display recreated chart
         			bp.setCenter(show);
         		}
+        	}
+        });
+        
+        //	add listener for show flags
+        showF.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+        	public void handle(ActionEvent a) {
+        		if (twenty.isSelected() && fifty.isSelected() && (checkedCount == 2)) {
+        			showFlags(twentyDayMA, fiftyDayMA, 20);
+        		}
+        		else if (twenty.isSelected() && oneHundred.isSelected() && (checkedCount == 2)) {
+        			showFlags(twentyDayMA, oneHundredDayMA, 20);
+        		}
+        		else if (twenty.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
+        			showFlags(twentyDayMA, twoHundredDayMA, 20);
+        		}
+        		else if (fifty.isSelected() && oneHundred.isSelected() && (checkedCount == 2)) {
+        			showFlags(fiftyDayMA, oneHundredDayMA, 50);
+        		}
+        		else if (fifty.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
+        			showFlags(fiftyDayMA, twoHundredDayMA, 50);
+        		}
+        		else if (oneHundred.isSelected() && twoHundred.isSelected() && (checkedCount == 2)) {
+        			showFlags(oneHundredDayMA, twoHundredDayMA, 100);
+        		}
+        		else
+        			displayWarning("Flags can only be shown for 2 series", "Please select only two moving averages");
+        	}
+        });
+        
+        // 	add listener for show flags
+        hideF.setOnAction(new EventHandler<ActionEvent>() {
+        	@Override
+        	public void handle(ActionEvent a) {
+        		bp.setCenter(show);
         	}
         });
         
@@ -1040,8 +1081,6 @@ public class Display extends Application {
         //	start fade
         t.play();
         
-        // 	add scene to window and give the window a default size
-        //Scene scene  = new Scene(bp, 1500,900);
         Rectangle2D screenSize = Screen.getPrimary().getVisualBounds();
         
         Scene scene  = new Scene(bp, screenSize.getWidth(), screenSize.getHeight());
@@ -1069,8 +1108,7 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Method which opens the initial login window
-	 * @param stage the main stage used to hold both the login and the main window
+	 * Method which opens the login window
 	 */
 	private void openLoginWindow(Stage stage){
 		//	title window
@@ -1138,7 +1176,7 @@ public class Display extends Application {
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty()){
         			try{
         				if(LoginManager.verifyLogin(usernameTextField.getText(), passwordTextField.getText()))
-        					openMainWindow(stage, usernameTextField.getText());
+        					openMainWindow(stage);
         				else{
         					passwordTextField.clear();
                 			errorLabel.setText("Login info not correct.");
@@ -1172,7 +1210,7 @@ public class Display extends Application {
         registerButton.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
-        		openRegisterWindow(stage);
+        		openRegisterWindow();
         	}
         });
         
@@ -1199,18 +1237,13 @@ public class Display extends Application {
 	}
 	
 	/**
-	 * Opens the window where a new user can register an account
-	 * @param primaryStage
+	 * Method used to open the registration window.
 	 */
-	public void openRegisterWindow(Stage primaryStage){
-		//  the main stage of the registration window
+	public void openRegisterWindow(){
 		Stage registerStage = new Stage();
 		registerStage.setTitle("Registation");
 		registerStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
-		registerStage.initModality(Modality.WINDOW_MODAL);
-		registerStage.initOwner(primaryStage);
 		
-		//  this grid holds all of the text fields, labels and buttons  
 		GridPane registerGrid = new GridPane();
 		registerGrid.setAlignment(Pos.CENTER);
 		registerGrid.setPadding(new Insets(10, 10, 10, 10));
@@ -1244,18 +1277,15 @@ public class Display extends Application {
         registerGrid.add(hbButtons, 0, 3, 2, 1);
         registerGrid.add(errorLabel, 0, 4, 2, 1);
         
-        //  the submit button checks if the text fields are empty and if not, if the passwords match, registers the user
         submitButton.setOnAction(new EventHandler<ActionEvent>() {
         	@Override
         	public void handle(ActionEvent e){
         		errorLabel.setText("");
         		if(!usernameTextField.getText().isEmpty() && !passwordTextField.getText().isEmpty() && 
         				passwordTextField.getText().equals(confirmPassTextField.getText())){
-        			String message = LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
-        			passwordTextField.clear();
-        			confirmPassTextField.clear();
-        			errorLabel.setText(message);
-        			errorLabel.setTextFill(Color.rgb(50, 210, 35));
+        			LoginManager.register(usernameTextField.getText(), passwordTextField.getText());
+        			
+        			registerStage.close();
         		}
         		else{
         			passwordTextField.clear();
@@ -1266,8 +1296,7 @@ public class Display extends Application {
         	}
         	
         });
-    
-        //  the clear button empties the text fields and the error label
+        
         clearButton.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
@@ -1278,131 +1307,12 @@ public class Display extends Application {
         	}
         });
         
-        //  the scene is attached to the stage
         Scene registerScene  = new Scene(registerGrid, 460, 300);
         registerScene.getStylesheets().add("file:src/assets/login.css");
         
         registerStage.setScene(registerScene);
         registerStage.setResizable(false);
         registerStage.show();
-	}
-	
-	/**
-	 * Opens the window in which the user can change their password
-	 * @param primaryStage the background window used to attach the pop-up to it
-	 * @param username the username of the current user
-	 */
-	public void openChangePassWindow(Stage primaryStage, String username) {
-		//  the main stage of the password change window
-		Stage changePassStage = new Stage();
-		changePassStage.setTitle("Change Password");
-		changePassStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
-		changePassStage.initModality(Modality.WINDOW_MODAL);
-		changePassStage.initOwner(primaryStage);
-		
-		//  this grid holds all of the text fields, labels and buttons
-		GridPane changePassGrid = new GridPane();
-		changePassGrid.setAlignment(Pos.CENTER);
-		changePassGrid.setPadding(new Insets(10, 10, 10, 10));
-		changePassGrid.setVgap(5);
-		changePassGrid.setHgap(10);
-		
-		HBox hbButtons = new HBox();
-        hbButtons.setAlignment(Pos.BASELINE_CENTER);
-        hbButtons.setPadding(new Insets(10, 10, 10, 10));
-        hbButtons.setSpacing(20);
-        
-        Button submitButton = new Button("Submit");
-        Button clearButton = new Button("Start Over");
-        
-        final Label passwordLabel = new Label("Old Password:");
-        final PasswordField passwordTextField = new PasswordField();
-        final Label confirmPassLabel = new Label("Confirm Password:");
-        final PasswordField confirmPassTextField = new PasswordField();
-        final Label errorLabel = new Label();
-        
-        hbButtons.getChildren().addAll(submitButton, clearButton);
-        
-        changePassGrid.add(passwordLabel, 0, 0);
-        changePassGrid.add(passwordTextField, 1, 0);
-        changePassGrid.add(confirmPassLabel, 0, 1);
-        changePassGrid.add(confirmPassTextField, 1, 1);
-        changePassGrid.add(hbButtons, 0, 2, 2, 1);
-        changePassGrid.add(errorLabel, 0, 3, 2, 1);
-        
-        //  the implementation of the submit button which checks the user's credentials, if correct
-        //  it provides the user with the ability to change their password
-        submitButton.setOnAction(new EventHandler<ActionEvent>() {
-        	@Override
-        	public void handle(ActionEvent e){
-        		errorLabel.setText("");
-        		
-        		//  check if the old password has been validated
-        		if(!oldPassValidated){
-        			if(passwordTextField.getText().isEmpty() || passwordTextField.getText().isEmpty()){
-        				passwordTextField.clear();
-        				confirmPassTextField.clear();
-        				errorLabel.setText("Fields not properly filled.");
-        			} else
-						try {
-							if(passwordTextField.getText().equals(confirmPassTextField.getText()) &&
-									LoginManager.verifyLogin(username, passwordTextField.getText())){
-								oldPassValidated = true;
-								oldPassString = passwordTextField.getText();
-								passwordTextField.clear();
-								confirmPassTextField.clear();
-								passwordLabel.setText("New Password:");
-							}
-							else{
-								passwordTextField.clear();
-								confirmPassTextField.clear();
-								errorLabel.setText("Could not change password.");
-								errorLabel.setTextFill(Color.rgb(210, 50, 35));
-							}
-						} catch (IOException e1) {
-							e1.printStackTrace();
-						}
-       			}
-        		//  this statement is run when the password is validated
-        		else{
-        			if(passwordTextField.getText().equals(confirmPassTextField.getText())){
-        				newPassString = passwordTextField.getText();
-       					String message = LoginManager.changePassword(username, oldPassString, newPassString);   
-       					passwordTextField.clear();
-       					confirmPassTextField.clear();
-       					errorLabel.setText(message);
-       					errorLabel.setTextFill(Color.rgb(255, 255, 255));
-       					passwordLabel.setText("Old password:");
-            			oldPassValidated = false;
-        			}
-        			else{
-        				passwordTextField.clear();
-       					confirmPassTextField.clear();
-       					errorLabel.setText("Could not change password.");
-       					errorLabel.setTextFill(Color.rgb(210, 50, 35));
-        			}
-        		}
-        	}
-        	
-        });
-        
-        //  the clear button empties the text fields and the error label
-        clearButton.setOnAction(new EventHandler<ActionEvent>(){
-        	@Override
-        	public void handle(ActionEvent e){
-        		passwordTextField.clear();
-        		confirmPassTextField.clear();
-        		errorLabel.setText(null);
-        	}
-        });
-        
-        //  the scene is attached to the stage
-        Scene changePasswordScene  = new Scene(changePassGrid, 460, 300);
-        changePasswordScene.getStylesheets().add("file:src/assets/login.css");
-        
-        changePassStage.setScene(changePasswordScene);
-        changePassStage.setResizable(false);
-        changePassStage.show();
 	}
 	
 	/**
@@ -1702,7 +1612,6 @@ public class Display extends Application {
 			else
 				imgs[i] = new Image("file:src/imgs/img" + i + ".png", 50.0, 50.0, true, true); 
 		}
-		
 		return imgs;
 	}
 	
@@ -1959,5 +1868,99 @@ public class Display extends Application {
     	
     	//	run program
         launch(args);
+    }
+
+
+    private ArrayList<Flag> buyOrSell(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
+			ArrayList<Point2D> intersectPointsMa20 = checkIntersection(s1,s2, 20);
+			ArrayList<Flag> listOfFlags = new ArrayList<Flag>();
+			
+			for(int i = 0; i < intersectPointsMa20.size() ; i++){
+				int prev = (int) Math.floor(intersectPointsMa20.get(i).getX());
+				int next = (int) Math.ceil(intersectPointsMa20.get(i).getX());
+				
+				//Getting the previous and next closing prices
+				double prevY20 = s1.getData().get(prev).getYValue().doubleValue();
+				double nextY20 = s1.getData().get(next).getYValue().doubleValue();
+				
+				double y = Math.round(intersectPointsMa20.get(i).getY() * 100.0) / 100.0;
+				
+				//If the previous closing price is bigger than the next then flag will be a buy
+				if((prevY20 > nextY20)){
+					listOfFlags.add(new Flag(y, dates[prev], Status.BUY, prev));					
+				//If the previous closing price is smaller than the next one, then flag will be sell	
+				}else if((prevY20 < nextY20)){
+					listOfFlags.add(new Flag(y, dates[prev], Status.SELL, prev));
+				}
+			
+			}
+			return listOfFlags;
+	}
+    
+    private void showFlags(XYChart.Series<Number,Number> s1, XYChart.Series<Number,Number> s2, int period) {
+    	// 	flags
+		   
+		//	create vertical box pane for central display
+		VBox middle = new VBox();
+		   
+		//	add graph
+		middle.getChildren().add(show);
+		   
+		//	set preferred height
+		middle.prefHeightProperty().bind(bp.heightProperty());
+		
+		
+		
+		//	list of flags
+		ObservableList<String> fs = FXCollections.observableArrayList ();
+		ArrayList<Flag> f = buyOrSell(s1, s2, period);
+		fs.clear();
+		for (int i = 0; i < f.size(); ++i)
+			fs.add(f.get(i).displayInfo());
+		        
+		//	set menu items to list view
+		flags = new ListView<String>();
+		flags.setItems(fs);
+		flags.setOrientation(Orientation.HORIZONTAL);
+		   
+		//	add signals to cells
+		flags.setCellFactory(param -> new ListCell<String>() {
+		   ImageView v = new ImageView();
+		   {
+			   prefWidthProperty().bind(stockList.widthProperty().subtract(2));
+	     	   setMaxWidth(Control.USE_PREF_SIZE);
+		   }
+		   @Override
+		   public void updateItem(String name, boolean empty) {
+			   super.updateItem(name, empty);
+			   if (empty) {
+				   setText(null);
+				   setGraphic(null);
+			   }
+			   else {
+				   if (name.charAt(0) == 'b')
+	    				v.setImage(new Image("file:src/imgs/greenArrow.png", 15.0, 15.0, true, true));
+				   else if (name.charAt(0) == 's')
+	     				v.setImage(new Image("file:src/imgs/redArrow.png", 15.0, 15.0, true, true));
+	     			
+	     			setText(name.substring(1));
+	     			setGraphic(v);
+				   }
+			   }
+		   });
+		   
+		//	set sizing
+		show.prefHeightProperty().bind(middle.prefHeightProperty());
+		flags.prefHeightProperty().bind(stockList.widthProperty());
+		   
+		//	add custom css class
+	    middle.getStyleClass().add("right-style");
+	    flags.getStyleClass().add("list-view-style");
+		   
+		//	add to central display
+		middle.getChildren().add(flags);
+		   
+		//	display central display
+		bp.setCenter(middle);
     }
 }
