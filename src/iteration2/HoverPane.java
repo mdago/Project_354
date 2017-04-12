@@ -29,7 +29,7 @@ class HoverPane extends StackPane {
 
     private Label createDataThresholdLabel(DateObject d, double price) {
       final Label label = new Label(d.toString() + "\nClosing Price: $" + price);
-      label.getStyleClass().addAll("#ffffff", "chart-line-symbol", "chart-series-line");
+      label.getStyleClass().addAll("chart-line-symbol", "chart-series-line");
       label.setStyle("-fx-font-size: 13;");
 
       label.toFront();
