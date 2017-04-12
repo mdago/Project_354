@@ -73,7 +73,59 @@ public class LoginManager {
 		catch(IOException e){
 			return "Failed to register.";
 		}
-		return "";
+		return "Registration successful!";
+	}
+	
+	/**
+	 * Changes the password of the user using the new password entered by the user
+	 * @param username the username of the current user
+	 * @param oldPassword the old password of the user used to verify
+	 * @param newPassword the new password of the current user
+	 * @return a string showing if the change was successful
+	 */
+	public static String changePassword(String username, String oldPassword, String newPassword){
+		//  both passwords are combined with the username to match the database
+		String oldSaltedPassword = SALT + oldPassword;
+		String oldHashedPassword = generateHash(oldSaltedPassword);
+		String oldUserPass = username + oldHashedPassword;
+		
+		String newSaltedPassword = SALT + newPassword;
+		String newHashedPassword = generateHash(newSaltedPassword);
+		String newUserPass = username + newHashedPassword;
+		
+		BufferedReader reader = null;
+		
+		//  the file is put into a string and the old username combined with the password are replaced
+		try{
+			reader = new BufferedReader(new FileReader("src/assets/UserDatabase.txt"));
+			String line = reader.readLine();
+			StringBuffer inputBuffer = new StringBuffer();
+			while(line != null){
+				if(line.isEmpty()){
+					line = reader.readLine();
+				}
+				else{
+					inputBuffer.append(line);
+					inputBuffer.append("\n");
+					line = reader.readLine();
+				}
+			}
+			String wholeFileText = inputBuffer.toString();
+			
+			reader.close();
+			
+			wholeFileText = wholeFileText.replace(oldUserPass, newUserPass);
+			
+			BufferedWriter writer = new BufferedWriter(new FileWriter("src/assets/UserDatabase.txt"));
+			writer.write(wholeFileText);
+			writer.newLine();
+			writer.close();
+		}
+		catch(IOException e){
+			e.printStackTrace();
+			return "Password change failed";
+		}
+		return "Password Changed!";
 	}
 	
 	/**
