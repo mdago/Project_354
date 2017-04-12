@@ -218,7 +218,7 @@
 
 /* Customize each line color and width */
 .default-color1.chart-series-area-line {
-    -fx-stroke-width: 3px;
+    -fx-stroke-width: 4px;
  }
  
 .default-color1.chart-area-symbol { 
@@ -226,7 +226,7 @@
 }
 
 .default-color2.chart-series-area-line {
-    -fx-stroke-width: 3px;
+    -fx-stroke-width: 4px;
  }
  
 .default-color2.chart-area-symbol { 
@@ -234,8 +234,8 @@
 }
 
 .default-color3.chart-series-area-line {
-    -fx-stroke:   #ff5722;
-    -fx-stroke-width: 3px;
+    -fx-stroke: #ff5722;
+    -fx-stroke-width: 4px;
  }
  
 .default-color3.chart-area-symbol { 
@@ -244,7 +244,7 @@
  
 .default-color4.chart-series-area-line {
     -fx-stroke: #e040fb;
-    -fx-stroke-width: 3px;
+    -fx-stroke-width: 4px;
  }
  
  .default-color4.chart-area-symbol { 
@@ -274,7 +274,7 @@
  	-fx-text-fill: lightgrey;
  	-fx-border-width: 1px 0px 1px 0px;
 	-fx-border-color: #545354 #545354 #545354 #545354;
-	-fx-padding: 8px 8px 8px 8px;
+	-fx-padding: 5px 5px 1px 5px;
  }
  
  .check-box:hover {
