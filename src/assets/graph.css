@@ -35,6 +35,7 @@
   	-fx-background-insets: 12; 
   	-fx-background-radius: 6;
   	*/
+  	-fx-border: none;
 }
 
 
@@ -87,24 +88,24 @@
 	-fx-font-size: 1.5em;
 }
 
-.list-view-style {
+.left-style .list-view-style {
 	-fx-font-size: 0.98em;
 	-fx-border: none;
 	-fx-background-color: #414042;
 }
 
-.list-view .scroll-bar:horizontal .increment-arrow,
-.list-view .scroll-bar:horizontal .decrement-arrow,
-.list-view .scroll-bar:horizontal .increment-button,
-.list-view .scroll-bar:horizontal .decrement-button {
+.left-style .list-view .scroll-bar:horizontal .increment-arrow,
+.left-style .list-view .scroll-bar:horizontal .decrement-arrow,
+.left-style .list-view .scroll-bar:horizontal .increment-button,
+.left-style .list-view .scroll-bar:horizontal .decrement-button {
     -fx-padding:0;
 }
 
-.list-view .scroll-bar:vertical {
+.left-style .list-view .scroll-bar:vertical {
     -fx-scale-x: 0;
 }
 
-.list-cell {
+.left-style .list-cell {
 	-fx-font-size: 0.90em;
 	-fx-padding: 5px;
 	-fx-background-color: #414042;
@@ -113,18 +114,17 @@
 	-fx-border-color: #414042 #414042 #545354 #414042;
 }
 
-.list-cell:hover {
+.left-style .list-cell:hover {
 	-fx-text-fill: white;
 	-fx-font-weight: bold;
 	-fx-background-color: #545354;
 }
 
-.list-cell:selected {
+.left-style .list-cell:selected {
 	-fx-text-fill: #81d4fa;
 	-fx-font-weight: bold;
 	-fx-background-color: #545354;
 }
-
 
 
 
@@ -264,6 +264,42 @@
 
 .default-color0.chart-area-symbol { 
 	-fx-background-color: #2B6BB1, #545354;
+}
+
+
+/*	LIST VIEW FLAGS BOTTOM */
+
+.right-style .list-view .scroll-bar:vertical {
+    -fx-scale-x: 0;
+}
+
+.right-style .list-view-style .list-cell {
+	-fx-font-size: 0.90em;
+	-fx-padding: 10px;
+	-fx-background-color: #414042;
+	-fx-text-fill: lightgrey;
+	-fx-border-width: 0px 1px 0px 1px;
+	-fx-border-color: #414042 #545354 #414042 #545354;
+}
+
+.right-style .list-view-style .list-cell:hover {
+	-fx-text-fill: white;
+	-fx-font-weight: bold;
+	-fx-background-color: #545354;
+}
+
+.right-style .list-view-style {
+	-fx-font-size: 0.98em;
+	-fx-border: none;
+	-fx-background-color: #414042;
+	-fx-text-fill: lightgrey;
+}
+
+.right-style .list-view .scroll-bar:horizontal .increment-arrow,
+.right-style .list-view .scroll-bar:horizontal .decrement-arrow,
+.right-style .list-view .scroll-bar:horizontal .increment-button,
+.right-style .list-view .scroll-bar:horizontal .decrement-button {
+    -fx-padding:0;
 }
 
 
@@ -415,6 +451,9 @@
     -fx-shape: null;
 }
 
+.hp {
+	-fx-background-color: #ffffff, #545354;
+}
 
 /*	POP UP */
 
