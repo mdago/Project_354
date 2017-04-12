@@ -1,8 +1,9 @@
 # Project 354
-Update 12 April 2017
--added change password functionality
--register and change password windows disable the background window
--username is now shown in the main window
+Update 12 April 2017  
+-added change password functionality  
+-register and change password windows disable the background window  
+-username is now shown in the main window  
+-buy and sell flags added as scrollable list on bottom of graph  
 
 Update 8 April 2017  
 -added intersection calculator method  
@@ -59,10 +60,8 @@ This read me will contain a list of things currently that need to fixed or added
 
 At this moment, some tasks that are required:
   1) Code cleanup (should be done either at end of implementation or during editing)
-  2) !!! Buy/Sell signals on crossing of moving average and stock prices !!!
-  3) Settings page to change password? The interview answers posted by the teacher mentions user AND password management
-  4) Conversion to Event based
-  5) Extensive Testing
+  2) Conversion to Event based
+  3) Extensive Testing
   
 These are some task currently requiring working. This list may be lengthened or shortened as need be.
 
