@@ -276,7 +276,7 @@
 .right-style .list-view-style .list-cell {
 	-fx-font-size: 0.90em;
 	-fx-padding: 10px;
-	-fx-background-color: #414042;
+	-fx-background-color: #353436;
 	-fx-text-fill: lightgrey;
 	-fx-border-width: 0px 1px 0px 1px;
 	-fx-border-color: #414042 #545354 #414042 #545354;
@@ -460,4 +460,8 @@
 .popover {
 	-fx-padding: 10px;
 	-fx-font-size: 15px;
+}
+
+.popover .label {
+	-fx-text-fill: black;
 }

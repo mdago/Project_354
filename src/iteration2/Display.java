@@ -1214,7 +1214,7 @@ public class Display extends Application {
         registerButton.setOnAction(new EventHandler<ActionEvent>(){
         	@Override
         	public void handle(ActionEvent e){
-        		openRegisterWindow();
+        		openRegisterWindow(stage);
         	}
         });
         
@@ -1243,10 +1243,12 @@ public class Display extends Application {
 	/**
 	 * Method used to open the registration window.
 	 */
-	public void openRegisterWindow(){
+	public void openRegisterWindow(Stage primaryStage){
 		Stage registerStage = new Stage();
 		registerStage.setTitle("Registation");
 		registerStage.getIcons().add(new Image("file:src/imgs/graph-icon.png"));
+		registerStage.initModality(Modality.WINDOW_MODAL);
+		registerStage.initOwner(primaryStage);
 		
 		GridPane registerGrid = new GridPane();
 		registerGrid.setAlignment(Pos.CENTER);
